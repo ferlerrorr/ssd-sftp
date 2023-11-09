@@ -49,151 +49,115 @@ class DataManagementContoller extends Controller
             </soap:Body>
         </soap:Envelope>';
 
-        // // Replace placeholders in the XML body with actual values
-        // $xmlBody = str_replace('YOUR_STORE_ID', $storeid, $xmlBody);
-        // $xmlBody = str_replace('YOUR_SKU', $sku, $xmlBody);
+        // Replace placeholders in the XML body with actual values
+        $xmlBody = str_replace('YOUR_STORE_ID', $storeid, $xmlBody);
+        $xmlBody = str_replace('YOUR_SKU', $sku, $xmlBody);
 
         // Create a cURL session
-        // $ch = curl_init();
+        $ch = curl_init();
 
-        // curl_setopt($ch, CURLOPT_URL, $url);
-        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        // curl_setopt($ch, CURLOPT_POST, true);
-        // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
-        // curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
 
-        // // Execute the cURL session and store the response
-        // $response = curl_exec($ch);
+        // Execute the cURL session and store the response
+        $response = curl_exec($ch);
 
-        // // Check for cURL errors
-        // if (curl_errno($ch)) {
-        //     echo 'cURL error: ' . curl_error($ch);
-        // }
-
-        // curl_close($ch);
-
-        // // Parse the SOAP response as XML
-        // $xml = simplexml_load_string($response);
-
-        // // Extract the content from the SKU_InquiryResult element
-        // $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
-
-        // return response($result);
-
-
-        // $ch = curl_init();
-
-        // curl_setopt($ch, CURLOPT_URL, $url);
-        // curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        // curl_setopt($ch, CURLOPT_POST, true);
-        // curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
-        // curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
-
-        // // Execute the cURL session and store the response
-        // $response = curl_exec($ch);
-
-        // // Check for cURL errors
-        // if (curl_errno($ch)) {
-        //     echo 'cURL error: ' . curl_error($ch);
-        // }
-
-        // curl_close($ch);
-
-
-        // // Parse the SOAP response as XML
-        // $xml = simplexml_load_string($response);
-
-        // // Extract the content from the SKU_InquiryResult element
-        // $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
-
-        // // Convert the result to CSV format
-        // $csvData = "Column1,Column2,Column3\n"; // Replace with your column headers
-
-        // // Assuming $result is an array or object that needs to be converted to CSV
-        // foreach ($result as $item) {
-        //     // Modify the following lines to match the structure of your $result
-        //     $csvData .= '"' . $item->Column1 . '","' . $item->Column2 . '","' . $item->Column3 . "\"\n";
-        // }
-
-        // // Define the file path to save the CSV file
-        // $csvFilePath = public_path('GrabSftp/result.csv'); // Adjust the file name as needed
-
-        // // Save the CSV data to the specified file
-        // file_put_contents($csvFilePath, $csvData);
-
-        // // You can also return the CSV file as a response if needed
-        // return response()->download($csvFilePath, 'result.csv');
-
-
-        // Split the SKU numbers into an array if multiple SKUs are processed
-        $skuNumbers = explode(',', $sku);
-
-        // Initialize an array to store the CSV data
-        $csvDataArray = array();
-
-        foreach ($skuNumbers as $skuNumber) {
-            // Replace placeholders in the XML body template with actual values
-            // Replace placeholders in the XML body with actual values
-            $xmlBody = str_replace('YOUR_STORE_ID', $storeid, $xmlBody);
-            $xmlBody = str_replace('YOUR_SKU', $sku, $xmlBody);
-
-
-            // Create a cURL session
-            $ch = curl_init();
-
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
-
-            // Limit the execution time of each request to 1 second
-            curl_setopt($ch, CURLOPT_TIMEOUT, 1);
-
-            // Execute the cURL session and store the response
-            $response = curl_exec($ch);
-
-            // Check for cURL errors
-            if (curl_errno($ch)) {
-                echo 'cURL error: ' . curl_error($ch);
-            }
-
-            curl_close($ch);
-
-            // Parse the SOAP response as XML
-            $xml = simplexml_load_string($response);
-
-            // Extract the content from the SKU_InquiryResult element
-            $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
-
-            // Convert the result to an array
-            $resultArray = json_decode($result, true);
-
-            // Add the result to the CSV data array
-            $csvDataArray[] = $resultArray;
+        // Check for cURL errors
+        if (curl_errno($ch)) {
+            echo 'cURL error: ' . curl_error($ch);
         }
 
-        // Define the CSV column headers (assuming all SKUs have the same structure)
-        if (!empty($csvDataArray)) {
-            $csvHeaders = array_keys($csvDataArray[0]);
+        curl_close($ch);
 
-            // Create a CSV string with headers
-            $csvData = implode(',', $csvHeaders) . "\n";
+        // Parse the SOAP response as XML
+        $xml = simplexml_load_string($response);
 
-            // Append the data to the CSV string
-            foreach ($csvDataArray as $data) {
-                $csvData .= '"' . implode('","', $data) . "\"\n";
-            }
+        // Extract the content from the SKU_InquiryResult element
+        $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
 
-            // Define the file path to save the CSV file
-            $csvFilePath = public_path('GrabSftp/result.csv'); // Adjust the file name as needed
+        return response($result);
 
-            // Save the CSV data to the specified file
-            file_put_contents($csvFilePath, $csvData);
 
-            // You can also return the CSV file as a response if needed
-            return response()->download($csvFilePath, 'result.csv');
-        }
+
+        //todo Get all Sku price from a Store then Propagate it in the DB
+
+
+
+        //! for CSV Export
+        // // Split the SKU numbers into an array if multiple SKUs are processed
+        // $skuNumbers = explode(',', $sku);
+
+        // // Initialize an array to store the CSV data
+        // $csvDataArray = array();
+
+        // foreach ($skuNumbers as $skuNumber) {
+        //     // Replace placeholders in the XML body template with actual values
+        //     // Replace placeholders in the XML body with actual values
+        //     $xmlBody = str_replace('YOUR_STORE_ID', $storeid, $xmlBody);
+        //     $xmlBody = str_replace('YOUR_SKU', $sku, $xmlBody);
+
+
+        //     // Create a cURL session
+        //     $ch = curl_init();
+
+        //     curl_setopt($ch, CURLOPT_URL, $url);
+        //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        //     curl_setopt($ch, CURLOPT_POST, true);
+        //     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
+        //     curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
+
+        //     // Limit the execution time of each request to 1 second
+        //     curl_setopt($ch, CURLOPT_TIMEOUT, 1);
+
+        //     // Execute the cURL session and store the response
+        //     $response = curl_exec($ch);
+
+        //     // Check for cURL errors
+        //     if (curl_errno($ch)) {
+        //         echo 'cURL error: ' . curl_error($ch);
+        //     }
+
+        //     curl_close($ch);
+
+        //     // Parse the SOAP response as XML
+        //     $xml = simplexml_load_string($response);
+
+        //     // Extract the content from the SKU_InquiryResult element
+        //     $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
+
+        //     // Convert the result to an array
+        //     $resultArray = json_decode($result, true);
+
+        //     // Add the result to the CSV data array
+        //     $csvDataArray[] = $resultArray;
+        // }
+
+        // // Define the CSV column headers (assuming all SKUs have the same structure)
+        // if (!empty($csvDataArray)) {
+        //     $csvHeaders = array_keys($csvDataArray[0]);
+
+        //     // Create a CSV string with headers
+        //     $csvData = implode(',', $csvHeaders) . "\n";
+
+        //     // Append the data to the CSV string
+        //     foreach ($csvDataArray as $data) {
+        //         $csvData .= '"' . implode('","', $data) . "\"\n";
+        //     }
+
+        //     // Define the file path to save the CSV file
+        //     $csvFilePath = public_path('GrabSftp/result.csv'); // Adjust the file name as needed
+
+        //     // Save the CSV data to the specified file
+        //     file_put_contents($csvFilePath, $csvData);
+
+        //     // You can also return the CSV file as a response if needed
+        //     return response()->download($csvFilePath, 'result.csv');
+        // }
+
+
     }
 
     /**
@@ -204,23 +168,121 @@ class DataManagementContoller extends Controller
     public function sftpDataStockUpdate()
     {
 
-        // Get the list of SKU Per Store
-        // Map the Participating SKu if Stock is not = Update
-
-        $date = Carbon::now()->subDays(10)->toDateString('Y-m-d');
-        $modifiedDate = substr(str_replace("-", "", $date), 2);
-
-        //Delimiter for PO
-        // string varDate = DateTime.Now.AddDays(-60).ToString("yyMMdd");
-
-        $data = DB::connection(env('DB2_CONNECTION'))
-            ->table('MM770SSL.POMHDR')
-            ->select('PONUMB', 'POSTAT', 'PONOT1', 'POVNUM', 'POEDAT')
-            ->where('POEDAT', '>=', $modifiedDate)
-            ->orderByDesc('PONUMB')
-            ->get();
 
 
-        return response()->json($data);
+        // $store = 114;
+
+        // $data = DB::connection(env('DB2_CONNECTION'))
+        //     ->table('MM770SSL.INVBAL')
+        //     ->select('ISTORE', 'INUMBR', 'IBHAND')
+        //     ->where('ISTORE', '=', $store)
+        //     ->where('IBHAND', '>', 0)
+        //     ->get();
+
+
+        //Pull the new data from JDA that has IBHAND more than 0
+        $newArr = [
+            [
+                "istore" => "114",
+                "inumbr" => "13025",
+                "ibhand" => "37.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "13024",
+                "ibhand" => "245.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "35069",
+                "ibhand" => "1.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "73128",
+                "ibhand" => "45.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "69270",
+                "ibhand" => "7.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "6927099",
+                "ibhand" => "8.00",
+            ]
+        ];
+
+
+        //first step is to query by storeId
+        $oldArr = [
+            [
+                "istore" => "114",
+                "inumbr" => "13025",
+                "ibhand" => "37.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "13024",
+                "ibhand" => "245.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "35069",
+                "ibhand" => "1.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "73128",
+                "ibhand" => "45.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "69270",
+                "ibhand" => "7.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "690929",
+                "ibhand" => "7.00",
+            ],
+            [
+                "istore" => "114",
+                "inumbr" => "121212",
+                "ibhand" => "7.00",
+            ],
+        ];
+
+        //Make the ibhand in the result 0 value
+        foreach ($oldArr as &$item) {
+            $item["ibhand"] = "0.00";
+        }
+
+        // Create an associative array for look-up
+        $oldArrAssoc = [];
+        foreach ($oldArr as &$item) {
+            $oldArrAssoc[$item['inumbr']] = &$item;
+        }
+
+        // Iterate through newArr
+        foreach ($newArr as $newItem) {
+            $inumbr = $newItem['inumbr'];
+            if (isset($oldArrAssoc[$inumbr])) {
+                // If inumbr exists in oldArr, replace ibhand value
+                $oldArrAssoc[$inumbr]['ibhand'] = $newItem['ibhand'];
+            } else {
+                // If inumbr does not exist in oldArr, push data to oldArr
+                $oldArr[] = $newItem;
+            }
+        }
+
+
+        //Make an Upsert to DB
+
+
+        $data = $oldArr;
+
+        return response($data);
     }
 }
