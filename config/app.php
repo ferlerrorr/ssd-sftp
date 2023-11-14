@@ -194,4 +194,11 @@ return [
         // ...
     ])->toArray(),
 
+
+
+    'http' => [
+        'timeout' => 18000, // Set the timeout value here (in seconds)
+    ],
+
+
 ];

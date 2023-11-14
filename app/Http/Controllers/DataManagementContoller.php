@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Env;
+use App\Jobs\PriceUpdate;
+use Illuminate\Support\Facades\Artisan;
 
 use Illuminate\Http\Request;
 
@@ -17,12 +19,41 @@ class DataManagementContoller extends Controller
      * @return \Illuminate\Http\Response
      */
     public function sftpDataPriceUpdate()
-    {    set_time_limit(0);
-
-        $storeid = "114";
-        // $skus = ["39", "933", "10014", "10015", "10028", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10061", "10062", "10064", "10066", "10067", "10068", "10069", "10070", "10071", "10074", "10075", "10076", "10077", "10078", "10088", "10089", "10090", "10115", "10116", "10131", "10137", "10146", "10170", "10171", "10176", "10186", "10200", "10203", "10204", "10215", "10219", "10221", "10222", "10223", "10226", "10227", "10229", "10230", "10251", "10252", "10253", "10277", "10282", "10285", "10292", "10293", "10295", "10304", "10305", "10309", "10317", "10320", "10321", "10327", "10330", "10331", "10333", "10334", "10335", "10339", "10340", "10341", "10353", "10354", "10373", "10377", "10379", "10384", "10385", "10391", "10394", "10400", "10402", "10403", "10404", "10409", "10410", "10411", "10414", "10415", "10421", "10422", "10425", "10427"];
-        $result = [];
-        //  $skus = [
+    {
+        //  $skus = [ "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044",
+        //   "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050",
+        //   "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055",
+        //   "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032",
+        //   "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039",
+        //   "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050",
+        //   "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060",
+        //    "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033",
+        //    "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044",
+        //    "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051",
+        //    "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029",
+        //     "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034",
+        //     "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045",
+        //      "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055",
+        //      "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032",
+        //      "10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039",
+        //      "10044", "10045", "10050", "10051", "10055", "10060", "10029", "10032", "10033", "10034", "10039", "10044", "10045", "10050",
+        //      "10051", "10055", "10060","10033", "10034", "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10061", "10062",
+        //      "10064", "10066", "10067", "10068", "10069", "10070", "10071", "10074", "10075", "10076", "10077", "10078", "10088", "10089",
+        //       "10090", "10115", "10116", "10131", "10137", "10146", "10170", "10171", "10176", "10186", "10200", "10203", "10204", "10215",
+        //       "10219", "10221", "10222", "10223", "10226", "10227", "10229", "10230", "10251", "10252", "10253", "10277", "10282", "10285",
+        //       "10292", "10293", "10295", "10304", "10305", "10309", "10317", "10320", "10321", "10327", "10330", "10331", "10333", "10334",
+        //        "10335", "10339", "10340", "10341", "10353", "10354", "10373", "10377", "10379", "10384", "10385", "10391", "10394", "10400",
+        //         "10402", "10403", "10404", "10409", "10410", "10411", "10414", "10415", "10421", "10422", "10425", "10427"];
+        $skus = ["39", "933", "10014", "10015", "10028", "10029", "10032", "10033", "10034",
+        "10039", "10044", "10045", "10050", "10051", "10055", "10060", "10061", "10062", "10064",
+         "10066", "10067", "10068", "10069", "10070", "10071", "10074", "10075", "10076", "10077",
+         "10078", "10088", "10089", "10090", "10115", "10116", "10131", "10137", "10146", "10170", "10171",
+          "10176", "10186", "10200", "10203", "10204", "10215", "10219", "10221", "10222", "10223", "10226", "10227",
+           "10229", "10230", "10251", "10252", "10253", "10277", "10282", "10285", "10292", "10293", "10295", "10304",
+            "10305", "10309", "10317", "10320", "10321", "10327", "10330", "10331", "10333", "10334", "10335", "10339", "10340",
+            "10341", "10353", "10354", "10373", "10377", "10379", "10384", "10385", "10391", "10394", "10400", "10402", "10403",
+            "10404", "10409", "10410", "10411", "10414", "10415", "10421", "10422", "10425", "10427"];
+        // $skus = [
         // "39",
         //  "933",
         //  "10014",
@@ -43,59 +74,38 @@ class DataManagementContoller extends Controller
         //  "10062",
         //  "10064",
         //  "10066",
-        //  "10067",
-        //  "10068",
-        //  "10069",
-        //  "10070",
-        //  "10071",
-        //  "10074",
-        //  "10075",
-        //  "10076",
-        //  "10077",
-        //  "10078",
-        //  "10088",
-        //  "10089",
-        //  "10090",
-        //  "10115",
-        //  "10116",
-        //  "10131",
-        //  "10137",
-        //  "10146",
-        //  "10170",
-        //  "10171",
-        //  "10176",
-        //  "10186",
-        //  "10200",
-        //  "10203",
-        //  "10204",
-        //  "10215",
-        //  "10219",
-        //  "10221",
-        //  "10222"];
+        // "39",
+        //  "933",
+        //  "10014",
+        //  "10015",
+        //  "10028",
+        //  "10029",
+        //  "10032",
+        //  "10033",
+        //  "10034",
+        //  "10039",
+        //  "10044",
+        //  "10045",
+        //  "10050",
+        //  "10051",
+        //  "10055",
+        //  "10060",
+        //  "10061",
+        //  "10062",
+        //  "10064",
+        //  "10066",
+        //   "10045",
+        //  "10050",
+        //  "10051",
+        //  "10055",
+        //  "10060",
+        //  "10061",
+        //  "10062",
+        //  "10064",
+        //  "10066"];
 
-
-
-          $skus = [
-        "39",
-         "933",
-         "10014",
-         "10015",
-         "10028",
-         "10029",
-         "10032",
-         "10033",
-         "10034",
-         "10039",
-         "10044",
-         "10045",
-         "10050",
-         "10051",
-         "10055",
-         "10060",
-         "10061",
-         "10062",
-         "10064",
-         "10066",];
+        $storeid = "114";
+        $result = [];
         foreach ($skus as $sku) {
             $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
             $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
@@ -139,7 +149,8 @@ class DataManagementContoller extends Controller
 
                 $data = [
                     'SKU_Number' => $sku_number,
-                    'SKU_Current_Price' => $sku_current_price
+                    'SKU_Current_Price' => $sku_current_price,
+                    'TimeStamp' => Carbon::now()
                 ];
 
                 $result[] = $data;
@@ -149,87 +160,32 @@ class DataManagementContoller extends Controller
                 $result[] = ['SKU_Number' => null, 'SKU_Current_Price' => null];
             }
 
-            // sleep(0.2);
-        }
-
-        return $result;
+            sleep(.6);
 
 
-        //todo Get all Sku price from a Store then Propagate it in the DB
+            }
+            $csvDataArray = $result;
+            if (!empty($csvDataArray)) {
+                $csvHeaders = array_keys($csvDataArray[0]);
 
 
+                $csvData = implode(',', $csvHeaders) . "\n";
 
-        //! for CSV Export
-        // // Split the SKU numbers into an array if multiple SKUs are processed
-        // $skuNumbers = explode(',', $sku);
+                foreach ($csvDataArray as $data) {
+                    $csvData .= '"' . implode('","', $data) . "\"\n";
+                }
+                $csvFilePath = public_path('GrabSftp/Price-Update.csv'); // Adjust the file name as needed
 
-        // // Initialize an array to store the CSV data
-        // $csvDataArray = array();
+                // Save the CSV data to the specified file
+                file_put_contents($csvFilePath, $csvData);
 
-        // foreach ($skuNumbers as $skuNumber) {
-        //     // Replace placeholders in the XML body template with actual values
-        //     // Replace placeholders in the XML body with actual values
-        //     $xmlBody = str_replace('YOUR_STORE_ID', $storeid, $xmlBody);
-        //     $xmlBody = str_replace('YOUR_SKU', $sku, $xmlBody);
+                return response()->download($csvFilePath, 'Price-Update.csv');
+                //  return response()->json($csvDataArray, 200);
 
+            }
 
-        //     // Create a cURL session
-        //     $ch = curl_init();
-
-        //     curl_setopt($ch, CURLOPT_URL, $url);
-        //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        //     curl_setopt($ch, CURLOPT_POST, true);
-        //     curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
-        //     curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
-
-        //     // Limit the execution time of each request to 1 second
-        //     curl_setopt($ch, CURLOPT_TIMEOUT, 1);
-
-        //     // Execute the cURL session and store the response
-        //     $response = curl_exec($ch);
-
-        //     // Check for cURL errors
-        //     if (curl_errno($ch)) {
-        //         echo 'cURL error: ' . curl_error($ch);
-        //     }
-
-        //     curl_close($ch);
-
-        //     // Parse the SOAP response as XML
-        //     $xml = simplexml_load_string($response);
-
-        //     // Extract the content from the SKU_InquiryResult element
-        //     $result = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
-
-        //     // Convert the result to an array
-        //     $resultArray = json_decode($result, true);
-
-        //     // Add the result to the CSV data array
-        //     $csvDataArray[] = $resultArray;
-        // }
-
-        // // Define the CSV column headers (assuming all SKUs have the same structure)
-        // if (!empty($csvDataArray)) {
-        //     $csvHeaders = array_keys($csvDataArray[0]);
-
-        //     // Create a CSV string with headers
-        //     $csvData = implode(',', $csvHeaders) . "\n";
-
-        //     // Append the data to the CSV string
-        //     foreach ($csvDataArray as $data) {
-        //         $csvData .= '"' . implode('","', $data) . "\"\n";
-        //     }
-
-        //     // Define the file path to save the CSV file
-        //     $csvFilePath = public_path('GrabSftp/result.csv'); // Adjust the file name as needed
-
-        //     // Save the CSV data to the specified file
-        //     file_put_contents($csvFilePath, $csvData);
-
-        //     // You can also return the CSV file as a response if needed
-        //     return response()->download($csvFilePath, 'result.csv');
-        // }
-
+    //   PriceUpdate::dispatch()->onQueue('Price-Update');
+    //   response()->json(['message' => 'Queue worker will start in the background']);
 
     }
 

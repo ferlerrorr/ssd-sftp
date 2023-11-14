@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 // });
 
 
-Route::get('/ssd/sftp/price-update', 'App\Http\Controllers\DataManagementContoller@sftpDataPriceUpdate');
+Route::get('/ssd/sftp/price-job-update', 'App\Http\Controllers\DataManagementContoller@sftpDataPriceUpdate');
 Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\DataManagementContoller@sftpDataStockUpdate');
 
 Route::get('/ssd/sftp/sku-master-update', 'App\Http\Controllers\DataManagementContoller@sftpSkuListUpdate');
