@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::create('sku', function (Blueprint $table) {
             $table->id();
-            $table->bigInteger('SKU_Number')->unique();
-            $table->float('SKU_Current_Price', 8, 2)->nullable();
+            $table->bigInteger('SKU_Number')->unique()->nullable();
+            $table->string('SKU_Current_Price', 255)->nullable();
             $table->timestamps();
         });
     }
