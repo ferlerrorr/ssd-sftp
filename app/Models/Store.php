@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Store extends Model
 {
     protected $table = 'stores';
+    public $timestamps = true;
     protected $fillable = [
         'istore',
         'grab',
@@ -16,5 +17,4 @@ class Store extends Model
     protected $casts = [
         'grab' => 'json',
     ];
-
 }
