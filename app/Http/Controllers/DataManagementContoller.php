@@ -210,37 +210,48 @@ class DataManagementContoller extends Controller
             }
         }
 
-        // Initialize an empty array to store grouped items
-        $groupedJda = [];
+        $storeupdatedata = [];
 
         // Group items in $jda by 'istore'
         foreach ($jda as $item) {
             $istore = $item->istore;
 
             // If the 'istore' key doesn't exist in $groupedJda, create an empty array for it
-            if (!isset($groupedJda[$istore])) {
-                $groupedJda[$istore] = [];
+            if (!isset($storeupdatedata[$istore])) {
+                $storeupdatedata[$istore] = [];
             }
 
             // Add the item to the grouped array
-            $groupedJda[$istore][] = $item;
+            $storeupdatedata[$istore][] = $item;
         }
 
-        // Now $groupedJda contains items grouped by 'istore'
+
+        // Chunk the array into chunks of 200
+        // Chunk the array into chunks of 200
+        $chunks = array_chunk($storeupdatedata, 200, true);
+
+        // Process each chunk
+        foreach ($chunks as $chunk) {
+            // Process each item in the chunk
+            foreach ($chunk as $storeKey => $storeData) {
+                // Assuming 'istore' is the unique key in your table
+
+                // Using Eloquent to update or insert into the database
+                Store::updateOrInsert(
+                    ['istore' => $storeKey],
+                    [
+                        'grab' => json_encode($storeData),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+            }
+        }
+
+
 
         // Return the grouped array as a response
-        return response($groupedJda);
-
-        // 'istore' => 'string',
-        // 'inumbr' => 'string',
-        // 'ibhand' => 'string',
-        // 'price' => 'string',
-        // 'pack_per_piece' => 'string',
-        // 'vendor_stocks' => 'string',
-        // 'price_per_pack' => 'string',
-
-
-
+        return response($storeupdatedata);
     }
     public function sftpSkuListUpdate()
     {
