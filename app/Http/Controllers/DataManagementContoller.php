@@ -29,14 +29,6 @@ class DataManagementContoller extends Controller
         // $skus = DB::table('sku')->take(10)->pluck('SKU_number');
         $skus = DB::table('sku')->pluck('SKU_number');
 
-        // $itemCount = count($skus);
-
-        // $res = [
-        //     $itemCount,
-        //     $skus
-        // ];
-
-        // return response()->json($res);
 
         $storeid = "114";
 
@@ -83,7 +75,7 @@ class DataManagementContoller extends Controller
 
                 $data = [
                     'SKU_Number' => $sku_number,
-                    'SKU_Current_Price' => str_replace(',', '.', $sku_current_price),
+                    'SKU_Current_Price' => str_replace(',', '', $sku_current_price),
                     // 'TimeStamp' => Carbon::now()
                 ];
 
@@ -93,7 +85,6 @@ class DataManagementContoller extends Controller
                 // You might want to log or handle this situation differently
                 $result[] = ['SKU_Number' => null, 'SKU_Current_Price' => null];
             }
-            sleep(.6);
         }
 
         // Divide the result array into chunks of 1000 elements each
@@ -116,7 +107,12 @@ class DataManagementContoller extends Controller
             }
         }
 
-        return response()->json($result, 200);
+
+        $dd = count($result);
+
+        $resp = [$dd, $result];
+
+        return response()->json($resp, 200);
 
         // $csvDataArray = $result;
         // if (!empty($csvDataArray)) {
@@ -201,7 +197,8 @@ class DataManagementContoller extends Controller
                 $item->SKU_Current_Price = $skuPriceMap[$item->inumbr] ?? null;
                 $item->grab_pack = $skuGrabPack[$item->inumbr] ?? 1; // default to 1 if grab_pack is not available
                 $item->grab_stock = max(0, floor($item->ibhand / $item->grab_pack));
-                $item->grab_price = max(0, ceil(floatval($item->SKU_Current_Price) * $item->grab_pack));
+                $item->grab_price = max(0, floatval($item->SKU_Current_Price) * $item->grab_pack);
+                // $item->grab_price = max(0, ceil(floatval($item->SKU_Current_Price) * $item->grab_pack));
 
                 // Only add the item to $jda if SKU_Current_Price is not null
                 if ($item->SKU_Current_Price !== null) {
