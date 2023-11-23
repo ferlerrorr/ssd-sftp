@@ -24,4 +24,4 @@ Route::get('/', function () {
 
 Route::get('/list-files', [FileManagerController::class, 'listFiles']);
 
-Route::get('/csv-files', [FileManagerController::class, 'downloadCSVFiles']);
+Route::get('/grab-csv-files', [FileManagerController::class, 'downloadCSVFiles']);

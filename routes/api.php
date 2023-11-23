@@ -19,7 +19,8 @@ use Illuminate\Support\Facades\Route;
 // });
 
 
-Route::get('/ssd/sftp/price-job-update', 'App\Http\Controllers\DataManagementContoller@sftpDataPriceUpdate');
-Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\DataManagementContoller@sftpDataStockUpdate');
-
+Route::get('/ssd/sftp/price-job-update', 'App\Http\Controllers\DataCronController@dataPriceUpdate');
 Route::get('/ssd/sftp/sku-master-update', 'App\Http\Controllers\DataManagementContoller@sftpSkuListUpdate');
+Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\GrabController@grabStockUpdate');
+Route::get('/ssd/sftp/grab-cron-update', 'App\Http\Controllers\GrabController@sftpCronCsvUpdater');
+Route::get('/ssd/sftp/grab-store-search', 'App\Http\Controllers\GrabController@index');

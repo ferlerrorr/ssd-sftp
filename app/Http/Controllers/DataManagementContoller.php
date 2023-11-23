@@ -96,14 +96,21 @@ class DataManagementContoller extends Controller
             $skuNumbers = array_column($chunk, 'SKU_Number');
 
             // Upsert the chunk data into the 'sku' table using Eloquent
+            // foreach ($chunk as $data) {
+            //     Sku::update(
+            //         ['SKU_Number' => $data['SKU_Number']],
+            //         [
+            //             'SKU_Current_Price' => $data['SKU_Current_Price'],
+            //             // Add other fields as needed
+            //         ]
+            //     );
+            // }
             foreach ($chunk as $data) {
-                Sku::updateOrCreate(
-                    ['SKU_Number' => $data['SKU_Number']],
-                    [
+                Sku::where('SKU_Number', $data['SKU_Number'])
+                    ->update([
                         'SKU_Current_Price' => $data['SKU_Current_Price'],
                         // Add other fields as needed
-                    ]
-                );
+                    ]);
             }
         }
 
@@ -165,97 +172,96 @@ class DataManagementContoller extends Controller
 
     }
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function sftpDataStockUpdate()
-    {
-        $stores = [114, 102];
-        $jda = [];
+    // /**
+    //  * Display a listing of the resource.
+    //  *
+    //  * @return \Illuminate\Http\Response
+    //  */
+    // public function sftpDataStockUpdate()
+    // {
+    //     $stores = [114, 102];
+    //     $jda = [];
 
-        foreach ($stores as $storeId) {
-            // Fetch data from the database for the current store
-            $data = DB::connection(env('DB2_CONNECTION'))
-                ->table('MM770SSL.INVBAL')
-                ->select('ISTORE', 'INUMBR', 'IBHAND')
-                ->where('ISTORE', $storeId)
-                ->get();
+    //     foreach ($stores as $storeId) {
+    //         // Fetch data from the database for the current store
+    //         $data = DB::connection(env('DB2_CONNECTION'))
+    //             ->table('MM770SSL.INVBAL')
+    //             ->select('ISTORE', 'INUMBR', 'IBHAND')
+    //             ->where('ISTORE', $storeId)
+    //             ->get();
 
-            // Fetch SKU data
-            $skuData = DB::table('sku')
-                ->select('SKU_number', 'SKU_Current_Price', 'grab_pack')
-                ->get();
+    //         // Fetch SKU data
+    //         $skuData = DB::table('sku')
+    //             ->select('SKU_number', 'SKU_Current_Price', 'grab_pack')
+    //             ->get();
 
-            // Create a mapping of SKU numbers to prices for quick lookup
-            $skuPriceMap = $skuData->pluck('SKU_Current_Price', 'SKU_number')->toArray();
-            $skuGrabPack = $skuData->pluck('grab_pack', 'SKU_number')->toArray();
+    //         // Create a mapping of SKU numbers to prices for quick lookup
+    //         $skuPriceMap = $skuData->pluck('SKU_Current_Price', 'SKU_number')->toArray();
+    //         $skuGrabPack = $skuData->pluck('grab_pack', 'SKU_number')->toArray();
 
-            // Add the SKU price to each element in $data if it exists
-            foreach ($data as $item) {
-                $item->SKU_Current_Price = $skuPriceMap[$item->inumbr] ?? null;
-                $item->grab_pack = $skuGrabPack[$item->inumbr] ?? 1; // default to 1 if grab_pack is not available
-                $item->grab_stock = max(0, floor($item->ibhand / $item->grab_pack));
-                $item->grab_price = max(0, floatval($item->SKU_Current_Price) * $item->grab_pack);
-                // $item->grab_price = max(0, ceil(floatval($item->SKU_Current_Price) * $item->grab_pack));
+    //         // Add the SKU price to each element in $data if it exists
+    //         foreach ($data as $item) {
+    //             $item->SKU_Current_Price = $skuPriceMap[$item->inumbr] ?? null;
+    //             $item->grab_pack = $skuGrabPack[$item->inumbr] ?? 1; // default to 1 if grab_pack is not available
+    //             $item->grab_stock = max(0, floor($item->ibhand / $item->grab_pack));
+    //             $item->grab_price = max(0, floatval($item->SKU_Current_Price) * $item->grab_pack);
+    //             // $item->grab_price = max(0, ceil(floatval($item->SKU_Current_Price) * $item->grab_pack));
 
-                // Only add the item to $jda if SKU_Current_Price is not null
-                if ($item->SKU_Current_Price !== null) {
-                    $jda[] = $item;
-                }
-            }
-        }
+    //             // Only add the item to $jda if SKU_Current_Price is not null
+    //             if ($item->SKU_Current_Price !== null) {
+    //                 $jda[] = $item;
+    //             }
+    //         }
+    //     }
 
-        $storeupdatedata = [];
+    //     $storeupdatedata = [];
 
-        // Group items in $jda by 'istore'
-        foreach ($jda as $item) {
-            $istore = $item->istore;
+    //     // Group items in $jda by 'istore'
+    //     foreach ($jda as $item) {
+    //         $istore = $item->istore;
 
-            // If the 'istore' key doesn't exist in $groupedJda, create an empty array for it
-            if (!isset($storeupdatedata[$istore])) {
-                $storeupdatedata[$istore] = [];
-            }
+    //         // If the 'istore' key doesn't exist in $groupedJda, create an empty array for it
+    //         if (!isset($storeupdatedata[$istore])) {
+    //             $storeupdatedata[$istore] = [];
+    //         }
 
-            // Add the item to the grouped array
-            $storeupdatedata[$istore][] = $item;
-        }
-
-
-        // Chunk the array into chunks of 200
-        // Chunk the array into chunks of 200
-        $chunks = array_chunk($storeupdatedata, 200, true);
-
-        // Process each chunk
-        foreach ($chunks as $chunk) {
-            // Process each item in the chunk
-            foreach ($chunk as $storeKey => $storeData) {
-                // Assuming 'istore' is the unique key in your table
-
-                // Using Eloquent to update or insert into the database
-                Store::updateOrInsert(
-                    ['istore' => $storeKey],
-                    [
-                        'grab' => json_encode($storeData),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
-            }
-        }
+    //         // Add the item to the grouped array
+    //         $storeupdatedata[$istore][] = $item;
+    //     }
 
 
+    //     // Chunk the array into chunks of 200
+    //     // Chunk the array into chunks of 200
+    //     $chunks = array_chunk($storeupdatedata, 200, true);
 
-        // Return the grouped array as a response
-        return response($storeupdatedata);
-    }
+    //     // Process each chunk
+    //     foreach ($chunks as $chunk) {
+    //         // Process each item in the chunk
+    //         foreach ($chunk as $storeKey => $storeData) {
+    //             // Assuming 'istore' is the unique key in your table
+
+    //             // Using Eloquent to update or insert into the database
+    //             Store::updateOrInsert(
+    //                 ['istore' => $storeKey],
+    //                 [
+    //                     'grab' => json_encode($storeData),
+    //                     'created_at' => now(),
+    //                     'updated_at' => now(),
+    //                 ]
+    //             );
+    //         }
+    //     }
+
+
+
+    //     // Return the grouped array as a response
+    //     return response($storeupdatedata);
+    // }
     public function sftpSkuListUpdate()
     {
         //! --note this two Stores Resulted in 6,990 Unique SKU_Number
         // $store = 600; //IHA
         $store = 114; //EPC
-
         $skuList = DB::connection(env('DB2_CONNECTION'))
             ->table('MM770SSL.INVBAL')
             ->select('INUMBR')

@@ -17,7 +17,6 @@ class FileManagerController extends Controller
         return view('file-list', ['files' => $files]);
     }
 
-
     public function downloadCSVFiles()
     {
         // Specify the directory where your CSV files are located
