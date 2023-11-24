@@ -4,6 +4,7 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -15,8 +16,21 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        $context = stream_context_create(['http' => ['timeout' => 60 * 60 * 5]]);
+
+        $schedule->call(function () use ($context) {
+            try {
+                file_get_contents('http://localhost:8802/api/ssd/sftp/price-job-update', false, $context);
+
+                // Process the response or handle success
+                // ...
+            } catch (\Exception $e) {
+                // Log any errors
+                Log::error('Error during scheduled task: ' . $e->getMessage());
+            }
+        })->dailyAt('15:48');
     }
+
 
     /**
      * Register the commands for the application.
@@ -25,7 +39,7 @@ class Kernel extends ConsoleKernel
      */
     protected function commands()
     {
-        $this->load(__DIR__.'/Commands');
+        $this->load(__DIR__ . '/Commands');
 
         require base_path('routes/console.php');
     }

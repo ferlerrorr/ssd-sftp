@@ -22,7 +22,7 @@ class GrabController extends Controller
             ->table('MM770SSL.INVBAL')
             ->select('ISTORE', 'INUMBR', 'IBHAND')
             ->where('ISTORE', 114)
-            ->where('INUMBR', 13141)
+            ->whereIn('INUMBR', [12896, 68942, 40185])
             ->get();
 
         return response($data);
@@ -141,62 +141,82 @@ class GrabController extends Controller
         $jda = [];
         $stores = [114, 102];
         $skus = DB::table('sku')
-            ->select('SKU_number')
-            // ->take(1000)
+            ->select('SKU_Number')
+            // ->take(100)
             ->get();
 
+        // Create a CSV array
+        $csvArray = [];
+
+        foreach ($skus as $sku) {
+            $csvArray[] = $sku->SKU_Number;
+        }
         foreach ($stores as $storeId) {
-            foreach ($skus as $sku) {
-                $data = DB::connection(env('DB2_CONNECTION'))
-                    ->table('MM770SSL.INVBAL')
-                    ->select('ISTORE', 'INUMBR', 'IBHAND')
-                    ->where('ISTORE', $storeId)
-                    ->where('INUMBR', $sku->SKU_number)
-                    ->get();
+            // Fetch data from the first table (MM770SSL.INVBAL)
+            $data = DB::connection(env('DB2_CONNECTION'))
+                ->table('MM770SSL.INVBAL')
+                ->select('ISTORE', 'INUMBR', 'IBHAND')
+                ->where('ISTORE', $storeId)
+                ->whereIn('INUMBR', $csvArray)
+                ->get();
 
-                // Fetch SKU data
-                $skuData = DB::table('sku')
-                    ->select('SKU_number', 'SKU_Current_Price', 'grab_pack')
-                    ->where('SKU_number', $sku->SKU_number)
-                    ->get();
 
-                $dataArray = json_decode(json_encode($data), true);
-                $skuDataArray = json_decode(json_encode($skuData), true);
-                $mergedData = array_merge($dataArray, $skuDataArray);
-                $flattenedArray = array_merge(...$mergedData);
-                if (isset($flattenedArray["ibhand"])) {
-                    $flattenedArray["grab_stock"] = max(0, floor($flattenedArray["ibhand"] / ($flattenedArray["grab_pack"] ?? 1)));
-                } else {
-                    $flattenedArray["grab_stock"] = 0;
+
+            $dataArray = json_decode(json_encode($data), true);
+
+            $skuData = DB::table('sku')
+                ->select('SKU_Number', 'SKU_Current_Price', 'grab_pack')
+                ->whereIn('SKU_Number', $csvArray)
+                ->get();
+
+            $skuDataArray = json_decode(json_encode($skuData), true);
+
+            $mergedData = [];
+            foreach ($skuDataArray as $skuItem) {
+                $grab_stock = 0; // Initialize grab_stock outside the inner loop
+                $grab_price = 0;
+                foreach ($dataArray as $dataItem) {
+                    if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
+                        $mergedData[] = array_merge($skuItem, $dataItem);
+                        if (isset($dataItem["ibhand"])) {
+                            $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
+                        } else {
+                            $grab_stock = 0;
+                        }
+                        $grab_price = max(0, floor($skuItem["SKU_Current_Price"] / ($skuItem["grab_pack"] ?? 1)));
+                    }
                 }
-                $flattenedArray["grab_price"] = max(0, floatval($flattenedArray["SKU_Current_Price"]) *  ($flattenedArray["grab_pack"] ?? 1));
 
-                $jda[] =  $flattenedArray;
+                // Add grab_stock after the inner loop completes for a particular $skuItem
+                $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
+                $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
+            }
+            // // Process the merged data
+            foreach ($mergedData as $flattenedArray) {
+                $jda[] = $flattenedArray;
             }
         }
 
+        // //this script can collet all unknown SKU put in array named unknown
+        // // $output = [];
+        // // foreach ($jda as $item) {
 
+        // //     if (isset($item['istore'])) {
+        // //         $istore = $item['istore'];
+        // //     } else {
+        // //         $istore = 'unknown';
+        // //     }
 
-        //this script can collet all unknown SKU put in array named unknown
-        // $output = [];
-        // foreach ($jda as $item) {
-
-        //     if (isset($item['istore'])) {
-        //         $istore = $item['istore'];
-        //     } else {
-        //         $istore = 'unknown';
-        //     }
-
-        //     if (!isset($output[$istore])) {
-        //         $output[$istore] = [];
-        //     }
-        //     $output[$istore][] = $item;
-        // }
+        // //     if (!isset($output[$istore])) {
+        // //         $output[$istore] = [];
+        // //     }
+        // //     $output[$istore][] = $item;
+        // // }
 
 
         $output = [];
 
-        foreach ($jda as $item) {
+        foreach ($jda  as $item) {
             // Check if 'istore' key exists in the $item array
             if (isset($item['istore'])) {
                 $istore = $item['istore'];
@@ -211,26 +231,24 @@ class GrabController extends Controller
         }
 
 
-        $chunks = array_chunk($output, 200, true);
-
-        // Process each chunk
+        $chunks = array_chunk($output, 20, true);
         foreach ($chunks as $chunk) {
-            // Process each item in the chunk
             foreach ($chunk as $storeKey => $storeData) {
-                // Assuming 'istore' is the unique key in your table
-
-                // Using Eloquent to update or insert into the database
-                Store::updateOrInsert(
-                    ['istore' => $storeKey],
-                    [
-                        'grab' => json_encode($storeData),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]
-                );
+                $data = [
+                    'istore' => $storeKey,
+                    'grab' => $storeData,
+                ];
+                $existingRecord = Store::where('istore', $storeKey)->first();
+                if ($existingRecord) {
+                    $existingRecord->update($data);
+                    $data['updated_at'] = now();
+                } else {
+                    $data['created_at'] = now();
+                    $data['updated_at'] = now();
+                    Store::insert($data);
+                }
             }
         }
-
         return response($output);
     }
 
