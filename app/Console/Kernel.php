@@ -28,7 +28,7 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('15:48');
+        })->dailyAt('10:35');
     }
 
 

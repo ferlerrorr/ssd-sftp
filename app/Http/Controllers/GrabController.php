@@ -46,7 +46,13 @@ class GrabController extends Controller
      */
     public function sftpCronCsvUpdater()
     {
-        $istoreValues = DB::table('stores')->pluck('istore')->all();
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+        $istoreValues = DB::table('store_maintenance')
+            ->select('istore')
+            ->where('grab', 1)
+            // ->take(5)
+            ->get()->pluck('istore');
         $csvDataAll = [];
 
         // Header for CSV
@@ -73,8 +79,8 @@ class GrabController extends Controller
                         $csvData[] = [
                             'StoreID' => $item->istore,
                             'SKU' => $item->inumbr,
-                            'RSP' => $item->grab_price,
-                            'Stock_On_Hand' => $item->grab_stock,
+                            'RSP' => $item->grab_price ?? null,
+                            'Stock_On_Hand' => $item->grab_stock ?? null,
                         ];
                     }
                 }
@@ -106,27 +112,7 @@ class GrabController extends Controller
         return response($csvDataAll);
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
 
     /**
      * Update the specified resource in storage.
@@ -137,9 +123,15 @@ class GrabController extends Controller
      */
     public function grabStockUpdate()
     {
-
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+        $stores = DB::table('store_maintenance')
+            ->select('istore')
+            ->where('grab', 1)
+            // ->take(50)
+            ->get()->pluck('istore');
         $jda = [];
-        $stores = [114, 102];
+
         $skus = DB::table('sku')
             ->select('SKU_Number')
             // ->take(100)
@@ -169,50 +161,72 @@ class GrabController extends Controller
                 ->whereIn('SKU_Number', $csvArray)
                 ->get();
 
+            // $skuDataArray = json_decode(json_encode($skuData), true);
+
+            // $mergedData = [];
+            // foreach ($skuDataArray as $skuItem) {
+            //     $grab_stock = 0; // Initialize grab_stock outside the inner loop
+            //     $grab_price = 0;
+            //     foreach ($dataArray as $dataItem) {
+            //         if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
+            //             $mergedData[] = array_merge($skuItem, $dataItem);
+            //             if (isset($dataItem["ibhand"])) {
+            //                 $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
+            //             } else {
+            //                 $grab_stock = 0;
+            //             }
+            //             $grab_price = max(0, floor($skuItem["SKU_Current_Price"] / ($skuItem["grab_pack"] ?? 1)));
+            //         }
+            //     }
+
+            //     // Add grab_stock after the inner loop completes for a particular $skuItem
+            //     $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
+            //     $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
+            // }
+            // // Process the merged data
+            // foreach ($mergedData as $flattenedArray) {
+            //     $jda[] = $flattenedArray;
+            // }
             $skuDataArray = json_decode(json_encode($skuData), true);
 
             $mergedData = [];
             foreach ($skuDataArray as $skuItem) {
                 $grab_stock = 0; // Initialize grab_stock outside the inner loop
                 $grab_price = 0;
+
                 foreach ($dataArray as $dataItem) {
-                    if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
-                        $mergedData[] = array_merge($skuItem, $dataItem);
-                        if (isset($dataItem["ibhand"])) {
-                            $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
-                        } else {
-                            $grab_stock = 0;
+                    // Check if required keys are present and not null in both arrays
+                    if (
+                        isset($skuItem['SKU_Number'], $dataItem['inumbr'], $skuItem["grab_pack"], $skuItem["SKU_Current_Price"]) &&
+                        isset($dataItem["ibhand"])
+                    ) {
+                        if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
+                            $mergedData[] = array_merge($skuItem, $dataItem);
+
+                            // Check if the necessary keys are present and not null before performing calculations
+                            if ($skuItem["grab_pack"] !== null) {
+                                $grab_stock = max(0, floor($dataItem["ibhand"] / $skuItem["grab_pack"]));
+                                $grab_price = max(0, floor($skuItem["SKU_Current_Price"] / $skuItem["grab_pack"]));
+                            } else {
+                                // If grab_pack is null, set grab_stock and grab_price to null
+                                $grab_stock = null;
+                                $grab_price = null;
+                            }
                         }
-                        $grab_price = max(0, floor($skuItem["SKU_Current_Price"] / ($skuItem["grab_pack"] ?? 1)));
                     }
                 }
 
-                // Add grab_stock after the inner loop completes for a particular $skuItem
-                $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
-                $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
+                // Check if grab_stock and grab_price are not null before adding to merged data
+                if ($grab_stock !== null && $grab_price !== null) {
+                    // Add grab_stock after the inner loop completes for a particular $skuItem
+                    $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
+                    $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
+                }
             }
-            // // Process the merged data
-            foreach ($mergedData as $flattenedArray) {
-                $jda[] = $flattenedArray;
-            }
+
+            // Process the merged data
+            $jda = $mergedData;
         }
-
-        // //this script can collet all unknown SKU put in array named unknown
-        // // $output = [];
-        // // foreach ($jda as $item) {
-
-        // //     if (isset($item['istore'])) {
-        // //         $istore = $item['istore'];
-        // //     } else {
-        // //         $istore = 'unknown';
-        // //     }
-
-        // //     if (!isset($output[$istore])) {
-        // //         $output[$istore] = [];
-        // //     }
-        // //     $output[$istore][] = $item;
-        // // }
-
 
         $output = [];
 
@@ -231,24 +245,30 @@ class GrabController extends Controller
         }
 
 
-        $chunks = array_chunk($output, 20, true);
-        foreach ($chunks as $chunk) {
-            foreach ($chunk as $storeKey => $storeData) {
-                $data = [
-                    'istore' => $storeKey,
-                    'grab' => $storeData,
-                ];
-                $existingRecord = Store::where('istore', $storeKey)->first();
-                if ($existingRecord) {
-                    $existingRecord->update($data);
-                    $data['updated_at'] = now();
-                } else {
-                    $data['created_at'] = now();
-                    $data['updated_at'] = now();
-                    Store::insert($data);
-                }
+        foreach ($output as $storeKey => $storeData) {
+            $cd = json_encode($storeData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $data = [
+                'istore' => $storeKey,
+                'grab' => $cd,
+                'updated_at' => now(),
+            ];
+
+            $existingRecord = Store::where('istore', $storeKey)->first();
+
+            if ($existingRecord) {
+                // Update existing record
+                $existingRecord->update($data);
+            } else {
+                $data['created_at'] = now();
+                $data['grab'] = str_replace(['\\', '/'], '', $data['grab']);
+                Store::insert($data);
             }
         }
+
+
+        $res = [
+            'message' => 'Grab Stores Stocks Updated Successfully',
+        ];
         return response($output);
     }
 
@@ -258,8 +278,68 @@ class GrabController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function searchPerStore($storeId)
     {
-        //
+
+
+        $skus = DB::table('sku')
+            ->select('SKU_Number')
+            // ->take(100)
+            ->get();
+
+        $csvArray = [];
+
+        foreach ($skus as $sku) {
+            $csvArray[] = $sku->SKU_Number;
+        }
+
+        $data = DB::connection(env('DB2_CONNECTION'))
+            ->table('MM770SSL.INVBAL')
+            ->select('ISTORE', 'INUMBR', 'IBHAND')
+            ->where('ISTORE', $storeId)
+            ->whereIn('INUMBR', $csvArray)
+            ->get();
+
+        // Check if there is data before proceeding
+        if ($data->isNotEmpty()) {
+            $dataArray = json_decode(json_encode($data), true);
+
+            $skuData = DB::table('sku')
+                ->select('SKU_Number', 'SKU_Current_Price', 'grab_pack')
+                ->whereIn('SKU_Number', $csvArray)
+                ->get();
+
+            $skuDataArray = json_decode(json_encode($skuData), true);
+
+            $mergedData = [];
+            foreach ($skuDataArray as $skuItem) {
+                $grab_stock = 0; // Initialize grab_stock outside the inner loop
+                $grab_price = 0;
+
+                $indexedDataArray = array_column($dataArray, null, 'inumbr');
+
+                if (isset($indexedDataArray[$skuItem['SKU_Number']])) {
+                    $dataItem = $indexedDataArray[$skuItem['SKU_Number']];
+                    $mergedData[] = array_merge($skuItem, $dataItem);
+
+                    if (isset($dataItem["ibhand"])) {
+                        $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
+                    }
+
+                    $grab_price = max(0, floor(floatval($skuItem["SKU_Current_Price"]) * ($skuItem["grab_pack"] ?? 1)));
+                }
+
+                // Add grab_stock after the inner loop completes for a particular $skuItem
+                if (!empty($mergedData)) {
+                    $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
+                    $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
+                }
+            }
+
+            // Process the merged data for the current store
+            $jda = $mergedData;
+        }
+
+        return response($jda);
     }
 }

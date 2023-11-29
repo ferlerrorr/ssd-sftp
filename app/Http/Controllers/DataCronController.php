@@ -20,7 +20,7 @@ class DataCronController extends Controller
         $storeid = "114";
 
         // Convert the array of SKU numbers to a comma-separated string
-        $sku_numbers = implode(',', $skus);
+        // $sku_numbers = implode(',', $skus);
 
         $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
         $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
@@ -36,7 +36,7 @@ class DataCronController extends Controller
                 <user>IFSSQLK1</user>
                 <password>$$D1i2O16</password>
                 <store_number>' . $storeid . '</store_number>
-                <sku_number>' . $sku_numbers . '</sku_number>
+                <sku_number>' . 31053 . '</sku_number>
                 <pel_ID></pel_ID>
             </SKU_Inquiry>
         </soap:Body>
@@ -71,55 +71,76 @@ class DataCronController extends Controller
             $result[] = ['SKU_Number' => null, 'SKU_Current_Price' => null];
         }
 
-        // return response($result);
+        return response($result);
     }
     public function dataPriceUpdate()
 
     {
-        $result = [];
-
-        // $skus = DB::table('sku')->take(10)->pluck('SKU_number');
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
         $skus = Sku::pluck('SKU_number');
+        // $skus = DB::table('sku')->where('SKU_Current_Price', null)->pluck('SKU_number');
+        // $skus = DB::table('sku')->take(30)->pluck('SKU_number');
+        $result = [];
         $storeid = "114";
 
         foreach ($skus as $sku) {
-            $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
-            $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
-                <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-                    <soap:Body>
-                        <SKU_Inquiry xmlns="http://tempuri.org/">
-                            <IP_Address>10.88.40.36</IP_Address>
-                            <machine_Name>RRGJDAP06</machine_Name>
-                            <JDA_Env>SSD</JDA_Env>
-                            <App_ID>TP</App_ID>
-                            <user>IFSSQLK1</user>
-                            <password>$$D1i2O16</password>
-                            <store_number>' . $storeid . '</store_number>
-                            <sku_number>' . $sku . '</sku_number>
-                            <pel_ID></pel_ID>
-                        </SKU_Inquiry>
-                    </soap:Body>
-                </soap:Envelope>';
+            $retryCount = 3; // Set the number of retries
+            $skuDetails = null;
 
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
+            while ($retryCount > 0) {
+                $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
+                $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
+                    <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                        xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                        <soap:Body>
+                            <SKU_Inquiry xmlns="http://tempuri.org/">
+                                <IP_Address>10.88.40.36</IP_Address>
+                                <machine_Name>RRGJDAP06</machine_Name>
+                                <JDA_Env>SSD</JDA_Env>
+                                <App_ID>TP</App_ID>
+                                <user>IFSSQLK1</user>
+                                <password>$$D1i2O16</password>
+                                <store_number>' . $storeid . '</store_number>
+                                <sku_number>' . $sku . '</sku_number>
+                                <pel_ID></pel_ID>
+                            </SKU_Inquiry>
+                        </soap:Body>
+                    </soap:Envelope>';
 
-            $response = curl_exec($ch);
-            curl_close($ch);
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
 
-            $xml = simplexml_load_string($response);
+                $response = curl_exec($ch);
 
-            $sku_details = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
+                // Check if cURL request was successful
+                if ($response === false) {
+                    // Handle error, you might want to log it
+                    echo 'cURL error: ' . curl_error($ch);
+                } else {
+                    $xml = simplexml_load_string($response);
 
-            if ($sku_details) {
-                $decodedData = json_decode($sku_details, true);
+                    $skuDetails = $xml->children('soap', true)->Body->children()->SKU_InquiryResponse->SKU_InquiryResult;
+                    $decodedData = json_decode($skuDetails, true);
 
+                    if ($skuDetails) {
+                        // Break the loop if successful response
+                        break;
+                    }
+                }
+
+                // Close cURL handle
+                curl_close($ch);
+                // Decrement retry count
+                $retryCount--;
+            }
+
+            if ($skuDetails) {
                 $sku_number = isset($decodedData['SKU_Number']) ? $decodedData['SKU_Number'] : null;
                 $sku_current_price = isset($decodedData['SKU_Current_Price']) ? $decodedData['SKU_Current_Price'] : null;
 
@@ -128,12 +149,11 @@ class DataCronController extends Controller
                     'SKU_Current_Price' => str_replace(',', '', $sku_current_price),
                 ];
                 $result[] = $data;
-            } else {
-                $result[] = ['SKU_Number' => null, 'SKU_Current_Price' => null];
             }
         }
 
-        $resultChunks = array_chunk($result, 1000);
+        //-------------------------------------
+        $resultChunks = array_chunk($result, 500);
 
         foreach ($resultChunks as $chunk) {
             foreach ($chunk as $data) {
@@ -148,16 +168,6 @@ class DataCronController extends Controller
 
         $resp = [$dd, $result];
 
-        return response()->json($resp, 200);
-    }
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
+        // return response()->json($resp, 200);
     }
 }

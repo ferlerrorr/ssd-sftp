@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id();
             $table->bigInteger('SKU_Number')->unique()->nullable();
             $table->string('SKU_Current_Price', 255)->nullable();
+            $table->bigInteger('grab_pack')->nullable();
             $table->timestamps();
         });
     }

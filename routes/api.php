@@ -18,10 +18,15 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // });
 
-
+//!Cron Jobs Endpoints
 Route::get('/ssd/sftp/price-job-update', 'App\Http\Controllers\DataCronController@dataPriceUpdate');
 Route::get('/ssd/sftp/soap-search', 'App\Http\Controllers\DataCronController@index');
-Route::get('/ssd/sftp/sku-master-update', 'App\Http\Controllers\DataManagementContoller@sftpSkuListUpdate');
+
+//!Grab Endpoints
 Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\GrabController@grabStockUpdate');
 Route::get('/ssd/sftp/grab-cron-update', 'App\Http\Controllers\GrabController@sftpCronCsvUpdater');
-Route::get('/ssd/sftp/grab-store-search', 'App\Http\Controllers\GrabController@index');
+Route::get('/ssd/sftp/grab-store-search/{storeId}', 'App\Http\Controllers\GrabController@searchPerStore');
+
+//!Store Endpoints
+//?Grab
+Route::post('/ssd/sftp/create-grab-store', 'App\Http\Controllers\StoreDataController@createGrabStore');
