@@ -25,6 +25,7 @@ services:
     sftp-db:
         container_name: sftp-db
         image: mysql:8.0
+        command: --sort_buffer_size=50M
         ports:
             - 3311:3311
         environment:
