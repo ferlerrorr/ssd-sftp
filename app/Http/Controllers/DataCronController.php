@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Sku;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 
 class DataCronController extends Controller
 {
@@ -76,16 +77,15 @@ class DataCronController extends Controller
     public function dataPriceUpdate()
 
     {
-        set_time_limit(0);
-        ini_set('memory_limit', '1024M');
+
         $skus = Sku::pluck('SKU_number');
         // $skus = DB::table('sku')->where('SKU_Current_Price', null)->pluck('SKU_number');
-        // $skus = DB::table('sku')->take(30)->pluck('SKU_number');
+        // $skus = DB::table('sku')->take(1000)->pluck('SKU_number');
         $result = [];
         $storeid = "114";
 
         foreach ($skus as $sku) {
-            $retryCount = 3; // Set the number of retries
+            $retryCount = 1; // Set the number of retries
             $skuDetails = null;
 
             while ($retryCount > 0) {
@@ -112,6 +112,7 @@ class DataCronController extends Controller
                 $ch = curl_init();
                 curl_setopt($ch, CURLOPT_URL, $url);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 120);
                 curl_setopt($ch, CURLOPT_POST, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/xml; charset=utf-8'));
                 curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
@@ -168,6 +169,6 @@ class DataCronController extends Controller
 
         $resp = [$dd, $result];
 
-        // return response()->json($resp, 200);
+        return response()->json($resp, 200);
     }
 }

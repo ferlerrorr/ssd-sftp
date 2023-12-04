@@ -376,7 +376,7 @@ class GrabController extends Controller
                     $mergedData[] = array_merge($skuItem, $dataItem);
 
                     if (isset($dataItem["ibhand"])) {
-                        $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
+                        $grab_stock = max(0, floor(floatval($dataItem["ibhand"]) / ($skuItem["grab_pack"] ?? 1)));
                     }
 
                     $grab_price = max(0, floor(floatval($skuItem["SKU_Current_Price"]) * ($skuItem["grab_pack"] ?? 1)));
