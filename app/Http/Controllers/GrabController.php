@@ -111,10 +111,8 @@ class GrabController extends Controller
         }
 
         // Return merged data for response
-        return response($csvDataAll);
+        // return response($csvDataAll);
     }
-
-
 
 
 
@@ -143,6 +141,10 @@ class GrabController extends Controller
             ->where('grab', 1)
             // ->take(20)
             ->get()->pluck('istore');
+
+        // $stores = [114, 2];
+
+
         $jda = [];
 
         $skus = DB::table('sku')
@@ -244,10 +246,10 @@ class GrabController extends Controller
         }
 
 
-        $res = [
-            'message' => 'Grab Stores Stocks Updated Successfully',
-        ];
-        return response($res);
+        // $res = [
+        //     'message' => 'Grab Stores Stocks Updated Successfully',
+        // ];
+        // return response($res);
     }
 
 

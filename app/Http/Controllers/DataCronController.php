@@ -77,15 +77,15 @@ class DataCronController extends Controller
     public function dataPriceUpdate()
 
     {
-
+        ini_set('memory_limit', '10048M');
         $skus = Sku::pluck('SKU_number');
         // $skus = DB::table('sku')->where('SKU_Current_Price', null)->pluck('SKU_number');
-        // $skus = DB::table('sku')->take(1000)->pluck('SKU_number');
+        // $skus = DB::table('sku')->take(10)->pluck('SKU_number');
         $result = [];
         $storeid = "114";
 
         foreach ($skus as $sku) {
-            $retryCount = 1; // Set the number of retries
+            $retryCount = 3;
             $skuDetails = null;
 
             while ($retryCount > 0) {
