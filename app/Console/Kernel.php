@@ -28,7 +28,7 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('04:00'); // Last Run 12/04  04:15 PM - 06:18 PM | 12/05 09:46 AM - 11:05 AM
+        })->dailyAt('10:30'); // Last Run 12/04  04:15 PM - 06:18 PM | 12/05 09:46 AM - 11:05 AM
 
 
         $schedule->call(function () use ($context) {
@@ -41,7 +41,7 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('07:00'); //12/05 11:30 AM - 12:07 PM
+        })->dailyAt('12:30'); //12/05 11:30 AM - 12:07 PM
         //everyTwoHours(); - For Usage in Upscaling
         //
 
@@ -55,7 +55,7 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('08:59');
+        })->dailyAt('14:00');
     }
 
 
