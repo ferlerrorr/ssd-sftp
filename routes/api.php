@@ -26,6 +26,7 @@ Route::get('/ssd/sftp/soap-search', 'App\Http\Controllers\DataCronController@ind
 Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\GrabController@grabStockUpdate');
 Route::get('/ssd/sftp/grab-cron-update', 'App\Http\Controllers\GrabController@sftpCronCsvUpdater');
 Route::get('/ssd/sftp/grab-store-search/{storeId}', 'App\Http\Controllers\GrabController@searchPerStore');
+Route::get('/ssd/sftp/all-sku-pack', 'App\Http\Controllers\GrabController@loadSkutoPack');
 
 //!Store Endpoints
 //?Grab

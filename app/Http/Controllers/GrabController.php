@@ -405,4 +405,15 @@ class GrabController extends Controller
     public function addGrabSku(Request $request)
     {
     }
+
+    public function loadSkutoPack()
+    {
+
+        $skus = DB::table('sku')
+            ->select('SKU_Number', 'grab_pack')
+            // ->take(100)
+            ->get();
+
+        return response($skus);
+    }
 }
