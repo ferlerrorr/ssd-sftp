@@ -252,88 +252,6 @@ class GrabController extends Controller
         // return response($res);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    // public function searchPerStore($storeId)
-    // {
-    //     $skus = DB::table('sku')
-    //         ->select('SKU_Number')
-    //         // ->take(100)
-    //         ->get();
-
-    //     $csvArray = [];
-
-    //     foreach ($skus as $sku) {
-    //         $csvArray[] = $sku->SKU_Number;
-    //     }
-
-    //     $data = DB::connection(env('DB2_CONNECTION'))
-    //         ->table('MM770SSL.INVBAL')
-    //         ->select('ISTORE', 'INUMBR', 'IBHAND')
-    //         ->where('ISTORE', $storeId)
-    //         ->whereIn('INUMBR', $csvArray)
-    //         ->get();
-
-    //     // Check if there is data before proceeding
-    //     if ($data->isNotEmpty()) {
-    //         $dataArray = json_decode(json_encode($data), true);
-
-    //         $skuData = DB::table('sku')
-    //             ->select('SKU_Number', 'SKU_Current_Price', 'grab_pack')
-    //             ->whereIn('SKU_Number', $csvArray)
-    //             ->get();
-
-    //         $skuDataArray = json_decode(json_encode($skuData), true);
-
-    //         $mergedData = [];
-    //         foreach ($skuDataArray as $skuItem) {
-    //             $grab_stock = 0; // Initialize grab_stock outside the inner loop
-    //             $grab_price = 0;
-
-    //             $indexedDataArray = array_column($dataArray, null, 'inumbr');
-
-    //             if (isset($indexedDataArray[$skuItem['SKU_Number']])) {
-    //                 $dataItem = $indexedDataArray[$skuItem['SKU_Number']];
-    //                 $mergedData[] = array_merge($skuItem, $dataItem);
-
-    //                 if (isset($dataItem["ibhand"])) {
-    //                     $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
-    //                 }
-
-    //                 $grab_price = max(0, floor(floatval($skuItem["SKU_Current_Price"]) * ($skuItem["grab_pack"] ?? 1)));
-    //             }
-
-    //             // Add grab_stock after the inner loop completes for a particular $skuItem
-    //             if (!empty($mergedData)) {
-    //                 $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
-    //                 $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
-    //             }
-    //         }
-
-    //         // Process the merged data for the current store
-    //         $count = count($mergedData);
-    //     }
-
-    //     return response([$count, $mergedData]);
-    // }
     public function searchPerStore($storeId)
     {
         $skus = DB::table('sku')
@@ -404,16 +322,92 @@ class GrabController extends Controller
 
     public function addGrabSku(Request $request)
     {
+
+        $requestData = $request->json()->all();
+
+        $skuData = [];
+
+        foreach ($requestData as $data) {
+            $skuData[] = [
+                'SKU_Number' => $data['SKU_Number'],
+                'grab_pack' => $data['grab_pack'],
+            ];
+        }
+
+        DB::table('sku')->insertOrIgnore($skuData);
+
+        return response()->json(['message' => 'Import success'], 200);
     }
+
+
 
     public function loadSkutoPack()
     {
 
         $skus = DB::table('sku')
             ->select('SKU_Number', 'grab_pack')
-            // ->take(100)
+
             ->get();
 
         return response($skus);
+    }
+
+
+
+    public function loadStoreMaintenance()
+    {
+
+        $stores = DB::table('store_maintenance')
+            ->select('istore', 'grab')
+            // ->take(100)
+            ->get();
+
+        return response($stores);
+    }
+
+
+
+    public function deleteGrabSku($SKU_Number)
+    {
+
+        // Find the SKU by SKU_Number and delete it
+        $deleted = Sku::where('SKU_Number', $SKU_Number)->delete();
+
+        // Check if the deletion was successful
+        if ($deleted) {
+            // Deletion successful
+            return response()->json(['message' => 'Sku Successfully Deleted']);
+        }
+    }
+
+
+
+    public function updateGrabSku(Request $request, $SKU_Number)
+    {
+        $decoded_sku = urldecode($SKU_Number);
+        $decoded_sku_int = (int)$decoded_sku;
+
+        $data = DB::table('sku')->where('SKU_Number', $decoded_sku_int)->first();
+
+        if ($data) {
+            DB::table('sku')
+                ->where('SKU_Number', $decoded_sku_int)
+                ->update([
+                    'SKU_Number' => $request->input('SKU_Number'),
+                    'grab_pack' => $request->input('grab_pack')
+                ]);
+
+            $resp = [
+                'msg' => 'Vendor Setup has been updated',
+            ];
+
+            return response()->json($resp, 200);
+        } else {
+            $resp = [
+                'msg' => 'SKU not found',
+            ];
+
+            return response()->json($resp, 404);
+        }
     }
 }

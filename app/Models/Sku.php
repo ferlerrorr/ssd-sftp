@@ -13,6 +13,7 @@ class Sku extends Model
     protected $fillable = [
         'SKU_Number',
         'SKU_Current_Price',
+        'grab_pack',
         // Add other fields as needed
     ];
 

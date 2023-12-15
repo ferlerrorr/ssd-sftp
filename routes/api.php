@@ -26,7 +26,11 @@ Route::get('/ssd/sftp/soap-search', 'App\Http\Controllers\DataCronController@ind
 Route::get('/ssd/sftp/stock-update', 'App\Http\Controllers\GrabController@grabStockUpdate');
 Route::get('/ssd/sftp/grab-cron-update', 'App\Http\Controllers\GrabController@sftpCronCsvUpdater');
 Route::get('/ssd/sftp/grab-store-search/{storeId}', 'App\Http\Controllers\GrabController@searchPerStore');
-Route::get('/ssd/sftp/all-sku-pack', 'App\Http\Controllers\GrabController@loadSkutoPack');
+Route::get('/ssd/sftp/grab-sku-pack', 'App\Http\Controllers\GrabController@loadSkutoPack');
+Route::get('/ssd/sftp/grab-stores', 'App\Http\Controllers\GrabController@loadStoreMaintenance');
+Route::post('/ssd/sftp/grab-add-sku', 'App\Http\Controllers\GrabController@addGrabSku');
+Route::get('/ssd/sftp/grab-delete-sku/{SKU_Number}', 'App\Http\Controllers\GrabController@deleteGrabSku');
+Route::put('/ssd/sftp/grab-update-sku/{SKU_Number}', 'App\Http\Controllers\GrabController@updateGrabSku');
 
 //!Store Endpoints
 //?Grab
