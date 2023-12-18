@@ -31,6 +31,7 @@ Route::get('/ssd/sftp/grab-stores', 'App\Http\Controllers\GrabController@loadSto
 Route::post('/ssd/sftp/grab-add-sku', 'App\Http\Controllers\GrabController@addGrabSku');
 Route::get('/ssd/sftp/grab-delete-sku/{SKU_Number}', 'App\Http\Controllers\GrabController@deleteGrabSku');
 Route::put('/ssd/sftp/grab-update-sku/{SKU_Number}', 'App\Http\Controllers\GrabController@updateGrabSku');
+Route::get('/ssd/sftp/grab-update-store-maintenance/{istore}', 'App\Http\Controllers\GrabController@updateGrabStoreMaintenance');
 
 //!Store Endpoints
 //?Grab

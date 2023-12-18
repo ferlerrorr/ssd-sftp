@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Sku;
 use App\Models\Store;
+use App\Models\StoreMaintenance;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -63,6 +64,17 @@ class GrabController extends Controller
             'Stock_On_Hand' => 'Stock_On_Hand',
         ];
         $csvDataAll[] = $header;
+
+
+        $directoryOne = public_path("GrabSftp/");
+
+        // Remove all .csv files in the directory
+        $files = glob($directoryOne . '*.csv'); // Get all .csv file names
+        foreach ($files as $file) {
+            if (is_file($file)) {
+                unlink($file); // Delete .csv file
+            }
+        }
 
         foreach ($istoreValues as $istore) {
             $grabCols = DB::table('stores')->where('istore', $istore)->get();
@@ -377,9 +389,10 @@ class GrabController extends Controller
         if ($deleted) {
             // Deletion successful
             return response()->json(['message' => 'Sku Successfully Deleted']);
+        } else {
+            return response()->json(['message' => 'Sku Not Found']);
         }
     }
-
 
 
     public function updateGrabSku(Request $request, $SKU_Number)
@@ -408,6 +421,25 @@ class GrabController extends Controller
             ];
 
             return response()->json($resp, 404);
+        }
+    }
+    public function updateGrabStoreMaintenance($istore)
+    {
+        // Find the store maintenance record with the given istore
+        $storeMaintenance = StoreMaintenance::where('istore', $istore)->first();
+
+        if ($storeMaintenance) {
+            // Check if 'grab' is null or 0, then set it to 1; otherwise, set it to 0
+            $newGrabValue = is_null($storeMaintenance->grab) || $storeMaintenance->grab == 0 ? 1 : 0;
+
+            // Update the 'grab' field
+            $storeMaintenance->update(['grab' => $newGrabValue]);
+
+            // Update successful
+            return response()->json(['message' => 'Store Successfully Updated']);
+        } else {
+            // Store not found
+            return response()->json(['message' => 'Store Not Found']);
         }
     }
 }
