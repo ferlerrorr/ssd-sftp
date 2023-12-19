@@ -442,4 +442,57 @@ class GrabController extends Controller
             return response()->json(['message' => 'Store Not Found']);
         }
     }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function createGrabStore(Request $request)
+    {
+        $istoreValues = $request->json()->all();
+
+        foreach ($istoreValues as $istore) {
+            // Assuming $istore is a single value representing istore
+            $insertData = [
+                'istore' => $istore,
+                'grab'   => 1,
+                // Add other columns as needed
+            ];
+
+            // Use updateOrCreate to perform the upsert operation
+            StoreMaintenance::updateOrCreate(
+                ['istore' => $istore],
+                $insertData
+            );
+        }
+
+        $res = [
+            'message' => 'Grab Stores Created successfully',
+        ];
+
+        return response()->json($res);
+    }
+
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteGrabStore($istore)
+    {
+        // Find the SKU by SKU_Number and delete it
+        $deleted = StoreMaintenance::where('istore', $istore)->delete();
+
+        // Check if the deletion was successful
+        if ($deleted) {
+            // Deletion successful
+            return response()->json(['message' => 'Store Successfully Deleted']);
+        } else {
+            return response()->json(['message' => 'Store Not Found']);
+        }
+    }
 }

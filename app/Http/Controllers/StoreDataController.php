@@ -27,37 +27,6 @@ class StoreDataController extends Controller
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function createGrabStore(Request $request)
-    {
-        $istoreValues = $request->json()->all();
-
-        foreach ($istoreValues as $istore) {
-            // Assuming $istore is a single value representing istore
-            $insertData = [
-                'istore' => $istore,
-                'grab'   => 1,
-                // Add other columns as needed
-            ];
-
-            // Use updateOrCreate to perform the upsert operation
-            StoreMaintenance::updateOrCreate(
-                ['istore' => $istore],
-                $insertData
-            );
-        }
-
-        $res = [
-            'message' => 'Grab Stores Created successfully',
-        ];
-
-        return response()->json($res);
-    }
 
     /**
      * Display the specified resource.
