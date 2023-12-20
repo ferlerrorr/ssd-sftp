@@ -213,7 +213,7 @@
         <div class="page-content Grab view-hidden" id="sftpGrabStore"
             style="overflow-y: auto; flex-direction: column;  align-items: center;  ">
 
-            <link rel="stylesheet" href="{{URL::asset('css/toggle.css')}}">>
+            <link rel="stylesheet" href="{{URL::asset('css/toggle.css')}}">
 
 
             <div class="view-header">
