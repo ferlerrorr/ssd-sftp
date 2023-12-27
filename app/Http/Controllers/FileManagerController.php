@@ -4,13 +4,12 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
 
 class FileManagerController extends Controller
 {
     public function listFiles()
     {
-        // Get the list of files in the public directory
+        // Get the list of files in the 'GrabSftp' directory
         $files = Storage::allFiles('GrabSftp');
 
         // Return a view with the list of files
