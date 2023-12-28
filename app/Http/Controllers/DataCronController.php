@@ -82,7 +82,7 @@ class DataCronController extends Controller
         // $skus = DB::table('sku')->where('SKU_Current_Price', null)->pluck('SKU_number');
         // $skus = DB::table('sku')->take(10)->pluck('SKU_number');
         $result = [];
-        $storeid = "114";
+        $storeid = "31";
 
         foreach ($skus as $sku) {
             $retryCount = 3;

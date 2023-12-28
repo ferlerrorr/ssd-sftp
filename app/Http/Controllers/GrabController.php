@@ -148,20 +148,21 @@ class GrabController extends Controller
     {
         set_time_limit(0);
         ini_set('memory_limit', '10048M');
-        $stores = DB::table('store_maintenance')
-            ->select('istore')
-            ->where('grab', 1)
-            // ->take(20)
-            ->get()->pluck('istore');
+        // $stores = DB::table('store_maintenance')
+        //     ->select('istore')
+        //     ->where('grab', 1)
+        //     // ->take(20)
+        //     ->get()->pluck('istore');
 
-        // $stores = [114, 2];
+        $stores = [114];
+
 
 
         $jda = [];
 
         $skus = DB::table('sku')
             ->select('SKU_Number')
-            // ->take(100)
+            ->take(5)
             ->get();
 
         // Create a CSV array
@@ -179,6 +180,7 @@ class GrabController extends Controller
                 ->whereIn('INUMBR', $csvArray)
                 ->get();
 
+
             $dataArray = json_decode(json_encode($data), true);
 
             $skuData = DB::table('sku')
@@ -190,6 +192,7 @@ class GrabController extends Controller
 
             $mergedData = [];
 
+
             foreach ($skuDataArray as &$skuItem) {
                 // Initialize grab_stock and grab_price for each SKU
                 $grab_stock = 0;
@@ -197,24 +200,28 @@ class GrabController extends Controller
 
                 foreach ($dataArray as $dataItem) {
                     if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
-                        $mergedData[] = array_merge($skuItem, $dataItem);
-                    }
+                        // Merge SKU and data only once
+                        $mergedDataItem = array_merge($skuItem, $dataItem);
 
-                    if (isset($dataItem["ibhand"])) {
-                        $grab_stock = max(0, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
-                    } else {
-                        $grab_stock = 0;
-                    }
+                        if (isset($dataItem["ibhand"])) {
+                            $grab_stock = max($grab_stock, floor($dataItem["ibhand"] / ($skuItem["grab_pack"] ?? 1)));
+                        } else {
+                            $grab_stock = max($grab_stock, 0);
+                        }
 
-                    $grab_price = max(0, floor($skuItem["SKU_Current_Price"] * ($skuItem["grab_pack"] ?? 1)));
-                    $skuItem["grab_stock"] = $grab_stock;
-                    $skuItem["grab_price"] = $grab_price;
+                        $grab_price = max($grab_price, $skuItem["SKU_Current_Price"] * ($skuItem["grab_pack"] ?? 1));
+
+                        // Set grab_stock and grab_price for the current SKU
+                        $mergedDataItem["grab_stock"] = $grab_stock;
+                        $mergedDataItem["grab_price"] = $grab_price;
+
+                        // Add the updated SKU data to the mergedData array
+                        $mergedData[] = $mergedDataItem;
+                    }
                 }
-                // Set grab_stock and grab_price for the current SKU
-
-                // Add the updated SKU data to the mergedData array
-                $mergedData[] = $skuItem;
             }
+
+
 
             foreach ($mergedData as $flattenedArray) {
                 $jda[] = $flattenedArray;
@@ -261,7 +268,7 @@ class GrabController extends Controller
         // $res = [
         //     'message' => 'Grab Stores Stocks Updated Successfully',
         // ];
-        // return response($res);
+        return response($data);
     }
 
     public function searchPerStore($storeId)
