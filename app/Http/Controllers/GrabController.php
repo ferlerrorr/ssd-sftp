@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
+use Illuminate\Support\Facades\SSH;
+
 class GrabController extends Controller
 {
     /**
@@ -120,17 +122,27 @@ class GrabController extends Controller
 
             // Merge data for response
             $csvDataAll = array_merge($csvDataAll, $csvData);
+
+
+            // $remoteDirectory = '/path/to/remote/directory/';
+
+            // // Upload CSV files to SFTP server
+
+            // $localFilePath = public_path("GrabSftp/{$istore}.csv");
+            // $remoteFilePath = $remoteDirectory . basename($localFilePath);
+
+            // // Check if the remote file already exists
+            // if (Storage::disk('sftp')->exists($remoteFilePath)) {
+            //     // If it exists, delete the file
+            //     Storage::disk('sftp')->delete($remoteFilePath);
+            // }
+
+            // // Upload file
+            // Storage::disk('sftp')->put($remoteFilePath, file_get_contents($localFilePath));
         }
 
-        // Return merged data for response
-        // return response($csvDataAll);
+        return response()->json(["Upload Success"], 200);
     }
-
-
-
-
-
-
 
 
 
@@ -193,7 +205,7 @@ class GrabController extends Controller
             $mergedData = [];
 
 
-            foreach ($skuDataArray as &$skuItem) {
+            foreach ($skuDataArray as $skuItem) {
                 // Initialize grab_stock and grab_price for each SKU
                 $grab_stock = 0;
                 $grab_price = 0;
