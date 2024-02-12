@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
-use Illuminate\Support\Facades\SSH;
-
 class GrabController extends Controller
 {
     /**
@@ -102,47 +100,56 @@ class GrabController extends Controller
                 }
             }
 
-            $filename = public_path("GrabSftp/{$istore}.csv");
 
-            // Remove existing file if it exists
-            if (file_exists($filename)) {
-                unlink($filename);
-            }
+            // $filename = public_path("GrabSftp/{$istore}.csv");
 
-            $fp = fopen($filename, 'w');
-
-            // Write header to CSV file
-            fputcsv($fp, array_values($header));
-
-            foreach ($csvData as $fields) {
-                fputcsv($fp, $fields);
-            }
-
-            fclose($fp);
-
-            // Merge data for response
-            $csvDataAll = array_merge($csvDataAll, $csvData);
-
-
-            // $remoteDirectory = '/path/to/remote/directory/';
-
-            // // Upload CSV files to SFTP server
-
-            // $localFilePath = public_path("GrabSftp/{$istore}.csv");
-            // $remoteFilePath = $remoteDirectory . basename($localFilePath);
-
-            // // Check if the remote file already exists
-            // if (Storage::disk('sftp')->exists($remoteFilePath)) {
-            //     // If it exists, delete the file
-            //     Storage::disk('sftp')->delete($remoteFilePath);
+            // // Remove existing file if it exists
+            // if (file_exists($filename)) {
+            //     unlink($filename);
             // }
 
-            // // Upload file
-            // Storage::disk('sftp')->put($remoteFilePath, file_get_contents($localFilePath));
+            // $fp = fopen($filename, 'w');
+
+            // // Write header to CSV file
+            // fputcsv($fp, array_values($header));
+
+            // foreach ($csvData as $fields) {
+            //     fputcsv($fp, $fields);
+            // }
+
+            // fclose($fp);
+
+            // // Merge data for response
+            // $csvDataAll = array_merge($csvDataAll, $csvData);
+
+
+            // Write CSV data to file
+            $csvContent = '';
+            foreach ($csvData as $row) {
+                $csvContent .= implode(',', $row) . "\n";
+            }
+
+            // Name the file after $istore
+            $filename = $istore . '.csv';
+
+            // Check if file exists and delete it before writing the new one
+            if (Storage::disk('sftp')->exists('path/to/remote/directory/' . $filename)) {
+                Storage::disk('sftp')->delete('path/to/remote/directory/' . $filename);
+            }
+
+            // Write CSV file to SFTP server
+            Storage::disk('sftp')->put('path/to/remote/directory/' . $filename, $csvContent);
         }
 
-        return response()->json(["Upload Success"], 200);
+        // Return merged data for response
+        // return response($csvDataAll);
     }
+
+
+
+
+
+
 
 
 
@@ -160,13 +167,13 @@ class GrabController extends Controller
     {
         set_time_limit(0);
         ini_set('memory_limit', '10048M');
-        // $stores = DB::table('store_maintenance')
-        //     ->select('istore')
-        //     ->where('grab', 1)
-        //     // ->take(20)
-        //     ->get()->pluck('istore');
+        $stores = DB::table('store_maintenance')
+            ->select('istore')
+            ->where('grab', 1)
+            // ->take(20)
+            ->get()->pluck('istore');
 
-        $stores = [114];
+        // $stores = [114];
 
 
 
@@ -174,7 +181,7 @@ class GrabController extends Controller
 
         $skus = DB::table('sku')
             ->select('SKU_Number')
-            ->take(5)
+            //   ->take(5)
             ->get();
 
         // Create a CSV array
