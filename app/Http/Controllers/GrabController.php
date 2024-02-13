@@ -123,22 +123,22 @@ class GrabController extends Controller
             // $csvDataAll = array_merge($csvDataAll, $csvData);
 
 
-            // Write CSV data to file
+            // Construct CSV content
             $csvContent = '';
             foreach ($csvData as $row) {
                 $csvContent .= implode(',', $row) . "\n";
             }
 
-            // Name the file after $istore
+            // Check if the file exists on the SFTP server and delete it if it does
             $filename = $istore . '.csv';
+            $filePath = "path/to/remote/$filename";
 
-            // Check if file exists and delete it before writing the new one
-            if (Storage::disk('sftp')->exists('path/to/remote/directory/' . $filename)) {
-                Storage::disk('sftp')->delete('path/to/remote/directory/' . $filename);
+            if (Storage::disk('sftp')->exists($filePath)) {
+                Storage::disk('sftp')->delete($filePath);
             }
 
-            // Write CSV file to SFTP server
-            Storage::disk('sftp')->put('path/to/remote/directory/' . $filename, $csvContent);
+            // Write the CSV content to the remote SFTP server using Laravel's Storage
+            Storage::disk('sftp')->put($filePath, $csvContent);
         }
 
         // Return merged data for response
