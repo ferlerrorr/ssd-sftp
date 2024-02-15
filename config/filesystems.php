@@ -82,6 +82,8 @@ return [
             r2sg9b6z7hGETWsqxFVoidhBfKDvthg7ZKXuzOkOS4JYuX5smRT7kNduXBe3W7nv12W/99
             Pe444uD6G252sbjtV/4NWtCptUyYFBMbJ0QQuk8vHa9mYm6RnOG8rJ8xbAR0u5aM+O+L/N
             MAZ23iUNV7bL1eOTAAAAEnJvb3RAUlJHU0FQTEFBUEkwMQ==',
+            'visibility' => 'public',
+            'permPublic' => 0766,
             'root' => '/path/to/remote/directory',
         ],
 
