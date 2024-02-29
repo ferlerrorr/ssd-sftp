@@ -9,6 +9,9 @@ use App\Models\StoreMaintenance;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use phpseclib\Net\SFTP;
+use phpseclib\Crypt\RSA;
+use Illuminate\Support\Env;
 
 class GrabController extends Controller
 {
@@ -100,49 +103,92 @@ class GrabController extends Controller
                 }
             }
 
+            $filename = public_path("GrabSftp/{$istore}.csv");
 
-            // $filename = public_path("GrabSftp/{$istore}.csv");
-
-            // // Remove existing file if it exists
-            // if (file_exists($filename)) {
-            //     unlink($filename);
-            // }
-
-            // $fp = fopen($filename, 'w');
-
-            // // Write header to CSV file
-            // fputcsv($fp, array_values($header));
-
-            // foreach ($csvData as $fields) {
-            //     fputcsv($fp, $fields);
-            // }
-
-            // fclose($fp);
-
-            // // Merge data for response
-            // $csvDataAll = array_merge($csvDataAll, $csvData);
-
-
-            // Construct CSV content
-            $csvContent = '';
-            foreach ($csvData as $row) {
-                $csvContent .= implode(',', $row) . "\n";
+            // Remove existing file if it exists
+            if (file_exists($filename)) {
+                unlink($filename);
             }
 
-            // Check if the file exists on the SFTP server and delete it if it does
-            $filename = $istore . '.csv';
-            $filePath = "path/to/remote/$filename";
+            $fp = fopen($filename, 'w');
 
-            if (Storage::disk('sftp')->exists($filePath)) {
-                Storage::disk('sftp')->delete($filePath);
+            // Write header to CSV file
+            fputcsv($fp, array_values($header));
+
+            foreach ($csvData as $fields) {
+                fputcsv($fp, $fields);
             }
 
-            // Write the CSV content to the remote SFTP server using Laravel's Storage
-            Storage::disk('sftp')->put($filePath, $csvContent);
+            fclose($fp);
+
+            // Merge data for response
+            $csvDataAll = array_merge($csvDataAll, $csvData);
+
+            // return response($csvData);
+            // return response($csvDataAll);
+            //! SFTP Function // Instantiate the SFTP connection
+            // $sftp = new SFTP(env('SFTP_HOST'));
+
+            // // Instantiate RSA with the private key string
+            // $rsa = new RSA();
+            // $rsa->loadKey(env('SFTP_PRIVATE_KEY'));
+
+            // // Authenticate with the private key
+            // if (!$sftp->login(env('SFTP_USERNAME'), $rsa)) {
+            //     return 'Login Failed';
+            // }
+
+            // // Connection successful, navigate to the input folder
+            // $sftp->chdir('/input');
+
+            // // Specify the remote file name
+            // $remoteFileName = $istore . '.csv'; // Assuming $istore contains the desired file name
+
+            // // Check if the file already exists
+            // if ($sftp->file_exists($remoteFileName)) {
+            //     // Delete the existing file
+            //     if (!$sftp->delete($remoteFileName)) {
+            //         return 'Failed to delete existing file';
+            //     }
+            // }
+
+            // // Upload the new file to the input folder
+            // if (!$sftp->put($remoteFileName, SFTP::SOURCE_LOCAL_FILE)) {
+            //     return 'File upload failed';
+            // }
+
+
+            // Your existing code for SFTP connection
+            // Your existing code for SFTP connection
+            $sftp = new SFTP(env('SFTP_HOST'));
+            $rsa = new RSA();
+            $rsa->loadKey(env('SFTP_PRIVATE_KEY'));
+
+            if (!$sftp->login(env('SFTP_USERNAME'), $rsa)) {
+                return 'Login Failed';
+            }
+
+            $sftp->chdir('/input');
+
+            // Specify the remote file name
+            $remoteFileName = $istore . '.csv'; // Assuming $istore contains the desired file name
+
+            // Remove existing file with the same filename on the remote server, if any
+            if ($sftp->file_exists($remoteFileName)) {
+                if (!$sftp->delete($remoteFileName)) {
+                    return 'Failed to delete existing file on the remote server';
+                }
+            }
+
+            // Upload the new file to the input folder
+            if (!$sftp->put($remoteFileName, $filename, SFTP::SOURCE_LOCAL_FILE)) {
+                return 'File upload failed';
+            }
+            // unlink($filename);
         }
 
         // Return merged data for response
-        // return response($csvDataAll);
+        return response($csvDataAll);
     }
 
 
@@ -520,5 +566,43 @@ class GrabController extends Controller
         } else {
             return response()->json(['message' => 'Store Not Found']);
         }
+    }
+
+
+
+
+    public function readfileSFTP()
+
+    {
+
+        // Instantiate the SFTP connection
+        $sftp = new SFTP(env('SFTP_HOST'));
+
+        // Instantiate RSA with the private key string
+        $rsa = new RSA();
+        $rsa->loadKey(env('SFTP_PRIVATE_KEY'));
+
+        // Authenticate with the private key
+        if (!$sftp->login(env('SFTP_USERNAME'), $rsa)) {
+            return response()->json(['error' => 'Login Failed']);
+        }
+
+        // Connection successful
+        // Fetch filenames from the remote directory
+        $directory = '/input';
+        $files = $sftp->nlist($directory);
+
+        // Check if listing files failed
+        if ($files === false) {
+            return response()->json(['error' => 'Failed to list files']);
+        }
+        $cc = count($files);
+        // Return filenames in JSON format
+        return response()->json(
+            [
+                'count' => $cc,
+                'filenames' => $files
+            ]
+        );
     }
 }

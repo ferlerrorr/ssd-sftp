@@ -37,3 +37,4 @@ Route::get('/ssd/sftp/grab-delete-store-maintenance/{istore}', 'App\Http\Control
 
 //!Store Endpoints
 //?Grab
+Route::get('/ssd/sftp/read-grab-files', 'App\Http\Controllers\GrabController@readfileSFTP');
