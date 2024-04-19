@@ -50,7 +50,6 @@ class GrabController extends Controller
      */
     public function sftpCronCsvUpdater()
     {
-        set_time_limit(0);
         ini_set('memory_limit', '5024M');
         $istoreValues = DB::table('store_maintenance')
             ->select('istore')
@@ -127,38 +126,7 @@ class GrabController extends Controller
             // return response($csvData);
             // return response($csvDataAll);
             //! SFTP Function // Instantiate the SFTP connection
-            // $sftp = new SFTP(env('SFTP_HOST'));
 
-            // // Instantiate RSA with the private key string
-            // $rsa = new RSA();
-            // $rsa->loadKey(env('SFTP_PRIVATE_KEY'));
-
-            // // Authenticate with the private key
-            // if (!$sftp->login(env('SFTP_USERNAME'), $rsa)) {
-            //     return 'Login Failed';
-            // }
-
-            // // Connection successful, navigate to the input folder
-            // $sftp->chdir('/input');
-
-            // // Specify the remote file name
-            // $remoteFileName = $istore . '.csv'; // Assuming $istore contains the desired file name
-
-            // // Check if the file already exists
-            // if ($sftp->file_exists($remoteFileName)) {
-            //     // Delete the existing file
-            //     if (!$sftp->delete($remoteFileName)) {
-            //         return 'Failed to delete existing file';
-            //     }
-            // }
-
-            // // Upload the new file to the input folder
-            // if (!$sftp->put($remoteFileName, SFTP::SOURCE_LOCAL_FILE)) {
-            //     return 'File upload failed';
-            // }
-
-
-            // Your existing code for SFTP connection
             // Your existing code for SFTP connection
             $sftp = new SFTP(env('SFTP_HOST'));
             $rsa = new RSA();
@@ -185,10 +153,11 @@ class GrabController extends Controller
                 return 'File upload failed';
             }
             // unlink($filename);
+            usleep(500000);
         }
 
         // Return merged data for response
-        return response($csvDataAll);
+        // return response($csvDataAll);
     }
 
 
