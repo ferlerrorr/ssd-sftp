@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Invbal;
 use Illuminate\Http\Request;
 use App\Models\Sku;
 use App\Models\Store;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Storage;
 use phpseclib\Net\SFTP;
 use phpseclib\Crypt\RSA;
 use Illuminate\Support\Env;
+use Illuminate\Support\Facades\Http;
+use Nette\Utils\Json;
 
 class GrabController extends Controller
 {
@@ -22,25 +25,18 @@ class GrabController extends Controller
      */
     public function index()
     {
-        $data = DB::connection(env('DB2_CONNECTION'))
-            ->table('MM770SSL.INVBAL')
-            ->select('ISTORE', 'INUMBR', 'IBHAND')
-            ->where('ISTORE', 114)
-            ->whereIn('INUMBR', [12896, 68942, 40185])
-            ->get();
 
-        return response($data);
+        //!For Refactoring to be removed.
+        // $data = DB::connection(env('DB2_CONNECTION'))
+        //     ->table('MM770SSL.INVBAL')
+        //     ->select('ISTORE', 'INUMBR', 'IBHAND')
+        //     ->where('ISTORE', 114)
+        //     ->whereIn('INUMBR', [12896, 68942, 40185])
+        //     ->get();
+
+        // return response($data);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
 
     /**
      * Store a newly created resource in storage.
@@ -102,6 +98,8 @@ class GrabController extends Controller
                 }
             }
 
+
+
             $filename = public_path("GrabSftp/{$istore}.csv");
 
             // Remove existing file if it exists
@@ -160,17 +158,6 @@ class GrabController extends Controller
         // return response($csvDataAll);
     }
 
-
-
-
-
-
-
-
-
-
-
-
     /**
      * Update the specified resource in storage.
      *
@@ -185,12 +172,10 @@ class GrabController extends Controller
         $stores = DB::table('store_maintenance')
             ->select('istore')
             ->where('grab', 1)
-            // ->take(20)
+            // ->take(5)
             ->get()->pluck('istore');
 
         // $stores = [114];
-
-
 
         $jda = [];
 
@@ -206,34 +191,44 @@ class GrabController extends Controller
             $csvArray[] = $sku->SKU_Number;
         }
         foreach ($stores as $storeId) {
+            //!For Refactoring to be removed.
+            // $data = DB::connection(env('DB2_CONNECTION'))
+            //     ->table('MM770SSL.INVBAL')
+            //     ->select('ISTORE', 'INUMBR', 'IBHAND')
+            //     ->where('ISTORE', $storeId)
+            //     ->whereIn('INUMBR', $csvArray)
+            //     ->get();
 
-            $data = DB::connection(env('DB2_CONNECTION'))
-                ->table('MM770SSL.INVBAL')
-                ->select('ISTORE', 'INUMBR', 'IBHAND')
-                ->where('ISTORE', $storeId)
-                ->whereIn('INUMBR', $csvArray)
-                ->get();
 
 
-            $dataArray = json_decode(json_encode($data), true);
+            // $dataArray = json_decode(json_encode($data), true);
+
+
+            $dataArray = DB::table('ds_invbal')->where('istore', $storeId)->pluck('invbal')->toArray();
+            $ddArray = json_decode($dataArray[0], true);
+            // $dataArray =  $dataArray[0];
+            // return response($resultArray);
 
             $skuData = DB::table('sku')
                 ->select('SKU_Number', 'SKU_Current_Price', 'grab_pack')
                 ->whereIn('SKU_Number', $csvArray)
                 ->get();
-
-            $skuDataArray = json_decode(json_encode($skuData), true);
+            $skuArray = json_decode($skuData, true);
 
             $mergedData = [];
 
-
-            foreach ($skuDataArray as $skuItem) {
+            $skuDataArray = json_decode(json_encode($skuData), true);
+            foreach ($skuArray as $skuItem) {
                 // Initialize grab_stock and grab_price for each SKU
                 $grab_stock = 0;
                 $grab_price = 0;
 
-                foreach ($dataArray as $dataItem) {
+                foreach ($ddArray as $dataItem) {
+
+                    // return response($skuItem['SKU_Number']);
                     if ($skuItem['SKU_Number'] == $dataItem['inumbr']) {
+
+
                         // Merge SKU and data only once
                         $mergedDataItem = array_merge($skuItem, $dataItem);
 
@@ -302,47 +297,42 @@ class GrabController extends Controller
         // $res = [
         //     'message' => 'Grab Stores Stocks Updated Successfully',
         // ];
-        return response($data);
+        return response($output);
     }
 
     public function searchPerStore($storeId)
     {
-        $skus = DB::table('sku')
-            ->select('SKU_Number')
-            // ->take(100)
-            ->get();
+        ini_set('memory_limit', '5G');
+        // Fetch SKUs directly as an array
+        $skus = DB::table('sku')->select('SKU_Number')->get();
 
         $csvArray = [];
-        $NoRecord = []; // Initialize the array to store records with no data
+        $NoRecord = [];
 
         foreach ($skus as $sku) {
             $csvArray[] = $sku->SKU_Number;
         }
 
-        $data = DB::connection(env('DB2_CONNECTION'))
-            ->table('MM770SSL.INVBAL')
-            ->select('ISTORE', 'INUMBR', 'IBHAND')
-            ->where('ISTORE', $storeId)
-            ->whereIn('INUMBR', $csvArray)
-            ->get();
+        $filteredData = Invbal::where('istore', $storeId)->pluck('invbal');
 
-        // Check if there is data before proceeding
-        if ($data->isNotEmpty()) {
-            $dataArray = json_decode(json_encode($data), true);
+        $mergedDataSS = [];
+        $mergedDataDD = $filteredData[0];
+        $count = '';
 
+        if (!empty($mergedDataDD)) {
             $skuData = DB::table('sku')
                 ->select('SKU_Number', 'SKU_Current_Price', 'grab_pack')
                 ->whereIn('SKU_Number', $csvArray)
                 ->get();
 
             $skuDataArray = json_decode(json_encode($skuData), true);
-
             $mergedData = [];
+
             foreach ($skuDataArray as $skuItem) {
-                $grab_stock = 0; // Initialize grab_stock outside the inner loop
+                $grab_stock = 0;
                 $grab_price = 0;
 
-                $indexedDataArray = array_column($dataArray, null, 'inumbr');
+                $indexedDataArray = array_column($mergedDataDD, null, 'inumbr');
 
                 if (isset($indexedDataArray[$skuItem['SKU_Number']])) {
                     $dataItem = $indexedDataArray[$skuItem['SKU_Number']];
@@ -354,22 +344,115 @@ class GrabController extends Controller
 
                     $grab_price = max(0, floor(floatval($skuItem["SKU_Current_Price"]) * ($skuItem["grab_pack"] ?? 1)));
                 } else {
-                    // Add the SKU to $NoRecord array when there is no data
                     $NoRecord[] = $skuItem['SKU_Number'];
                 }
 
-                // Add grab_stock after the inner loop completes for a particular $skuItem
                 if (!empty($mergedData)) {
                     $mergedData[count($mergedData) - 1]["grab_stock"] = $grab_stock;
                     $mergedData[count($mergedData) - 1]["grab_price"] = $grab_price;
                 }
             }
 
-            //Process the merged data for the current store
-            $count = count($mergedData);
+            $mergedDataSS[] = $mergedData;
+            $count = count($mergedDataSS[0]);
         }
 
-        return response([$count, $mergedData, $NoRecord]);
+        return response([$count, $mergedDataSS, $NoRecord]);
+
+
+        // ini_set('max_execution_time', 3600);
+        // ini_set('memory_limit', '5G');
+
+        //? On input get skus - by $store_id input
+
+
+
+
+        //!JDA Script for refactoring
+        // $data = DB::connection(env('DB2_CONNECTION'))
+        //     ->table('MM770SSL.INVBAL')
+        //     ->select('ISTORE', 'INUMBR', 'IBHAND')
+        //     ->where('ISTORE', $storeId)
+        //     ->whereIn('INUMBR', $csvArray)
+        //     ->get();
+        //!JDA Script for refactoring
+
+
+
+        // $skip = 0;
+        // $take = 500;
+        // $mergedResult = [];
+        // do {
+
+        //     //! to be updated with local db staging -> INVBAL
+        //     $response = Http::withHeaders([
+        //         'Host' => '10.60.13.150:8086',
+        //         'Authorization' => 'password',
+        //         'business_unit_id' => '102',
+        //         'timeout' => 420 // Timeout set to 3 minutes (180 seconds)
+        //     ])->get("http://10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
+
+
+        //     // Check if the request was successful
+        //     if ($response->successful()) {
+        //         $responseData = $response->json()['data']; // Access response data using json() method
+        //         $mergedResult = array_merge($mergedResult, $responseData);
+
+        //         // Increment skip for the next iteration
+        //         $skip += $take;
+
+        //         // If the response data is empty, break the loop
+        //         if (empty($responseData)) {
+        //             break;
+        //         }
+        //     } else {
+        //         // Handle the error
+        //         $errorCode = $response->status();
+        //         $errorMessage = $response->body();
+        //         // Handle or log the error as needed
+        //         // For example: Log::error("Error fetching data: $errorCode - $errorMessage");
+        //         break; // Stop the loop on error
+        //     }
+
+        //     // Introduce a buffer of 0.5 seconds between each request
+        //     sleep(0.1);
+        // } while (true);
+
+        // return response($mergedResult);
+
+        // $filteredData = [];
+
+        // // // Iterate through each object in the array
+        // foreach ($mergedResult as $item) {
+        //     // Create a new object with only the specified properties
+        //     $filteredItem = [
+        //         "INUMBR" => $item["INUMBR"],
+        //         "ISTORE" => $item["ISTORE"],
+        //         "IBHAND" => $item["IBHAND"]
+        //     ];
+
+        //     // Add the filtered object to the filtered data array
+        //     $filteredData[] = $filteredItem;
+        // }
+
+        // return response($filteredData[0]);
+
+        // // Iterate through each object
+        // foreach ($filteredData as &$obj) {
+        //     // Iterate through each property of the object
+        //     foreach ($obj as $key => $value) {
+        //         // Convert the property name to lowercase
+        //         $lowercaseKey = strtolower($key);
+        //         // If the property name is already in lowercase, continue to the next property
+        //         if ($lowercaseKey === $key) {
+        //             continue;
+        //         }
+        //         // Remove the original property and add the lowercase property
+        //         $obj[$lowercaseKey] = $value;
+        //         unset($obj[$key]);
+        //     }
+        // }
+
     }
 
 
@@ -399,7 +482,6 @@ class GrabController extends Controller
 
         $skus = DB::table('sku')
             ->select('SKU_Number', 'grab_pack')
-
             ->get();
 
         return response($skus);
@@ -573,5 +655,46 @@ class GrabController extends Controller
                 'filenames' => $files
             ]
         );
+    }
+
+
+
+    //! Inclusion
+
+    public function TMP()
+    {
+        $invbal = Invbal::pluck('istore');
+        $grabStore = Store::pluck('istore');
+        $commonStores = [];
+        $uniqueInvbalStores = [];
+        $uniqueGrabStore = [];
+
+        $invbal = $invbal->toArray();
+        $grabStore = $grabStore->toArray();
+
+        // Check common stores
+        foreach ($invbal as $store) {
+            if (in_array($store, $grabStore)) {
+                $commonStores[] = $store;
+            } else {
+                $uniqueInvbalStores[] = $store;
+            }
+        }
+
+        // Check for unique stores in $grabStore
+        foreach ($grabStore as $store) {
+            if (!in_array($store, $invbal, true)) {
+                $uniqueGrabStore[] = $store;
+            }
+        }
+
+        // Prepare response
+        $response = [
+            'common_stores' => $commonStores,
+            'unique_invbal_stores' => $uniqueInvbalStores,
+            'unique_grab_store' => $uniqueGrabStore,
+        ];
+
+        return response()->json($response);
     }
 }

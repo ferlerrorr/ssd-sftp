@@ -38,3 +38,11 @@ Route::get('/ssd/sftp/grab-delete-store-maintenance/{istore}', 'App\Http\Control
 //!Store Endpoints
 //?Grab
 Route::get('/ssd/sftp/read-grab-files', 'App\Http\Controllers\GrabController@readfileSFTP');
+
+
+//?DVREP
+Route::get('/ssd/sftp/invbal', 'App\Http\Controllers\DataCronController@dvRepInvbal');
+
+
+//?TMP
+Route::get('/ssd/sftp/tmps', 'App\Http\Controllers\GrabController@TMP');

@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Sku;
+use App\Models\StoreMaintenance;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
+use App\Models\Invbal;
 
 class DataCronController extends Controller
 {
@@ -74,6 +77,10 @@ class DataCronController extends Controller
 
         return response($result);
     }
+
+
+
+
     public function dataPriceUpdate()
 
     {
@@ -170,5 +177,137 @@ class DataCronController extends Controller
         $resp = [$dd, $result];
 
         return response()->json($resp, 200);
+    }
+
+
+
+
+
+    //! Inclusion
+
+    public function dvRepInvbal()
+
+    {
+        ini_set('memory_limit', '10048M');
+        ini_set('max_execution_time', 180);
+
+        $istore = StoreMaintenance::pluck('istore');
+        $skus = Sku::pluck('SKU_Number');
+
+        // return response($skus);
+
+        // take(5)->
+        $filteredData = [];
+
+        foreach ($istore as $storeId) {
+
+            $skip = 0;
+            $take = 1000;
+            $mergedResult = [];
+            do {
+                $response = Http::withHeaders([
+                    'Host' => env('DS_HOST') . ':' . env('DS_PORT'),
+                    'Authorization' => env('DS_PASSWORD'),
+                    'business_unit_id' => env('DS_UNIT_ID'),
+                ])->get("http://10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
+                // http: //10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=0&take=1000&store=114
+                // Check if the request was successful
+                // return response($response);
+                if ($response->successful()) {
+                    $responseData = $response->json()['data'];
+                    $mergedResult = array_merge($mergedResult, $responseData);
+
+                    // Increment the skip for the next iteration by setting skip equal to the sum of $skip and $take
+                    $skip += $take;
+
+                    // If the response data is empty, break the loop
+                    if (empty($responseData)) {
+                        break;
+                    }
+                } else {
+                    // Handle the error
+                    $errorCode = $response->status();
+                    $errorMessage = $response->body();
+                    // Handle or log the error as needed
+                    // For example: Log::error("Error fetching data: $errorCode - $errorMessage");
+                    break; // Stop the loop on error
+                }
+
+                // Introduce a buffer of 0.5 seconds between each request
+                // sleep(0.1);
+            } while (true);
+
+
+
+
+            // // Iterate through each object in the array
+            foreach ($mergedResult as $item) {
+                // Create a new object with only the specified properties
+                $filteredItem = [
+                    "ISTORE" => $item["ISTORE"],
+                    "INUMBR" => $item["INUMBR"],
+                    "IBHAND" => $item["IBHAND"]
+                ];
+
+                // Add the filtered object to the filtered data array
+                $filteredData[] = $filteredItem;
+            }
+        }
+
+
+        // Iterate through each object
+        foreach ($filteredData as &$obj) {
+            // Iterate through each property of the object
+            foreach ($obj as $key => $value) {
+                // Convert the property name to lowercase
+                $lowercaseKey = strtolower($key);
+                // If the property name is already in lowercase, continue to the next property
+                if ($lowercaseKey === $key) {
+                    continue;
+                }
+                // Remove the original property and add the lowercase property
+                $obj[$lowercaseKey] = $value;
+                unset($obj[$key]);
+            }
+        }
+
+
+
+        $groupedData = [];
+
+        foreach ($filteredData as $item) {
+            $groupedData[$item['istore']][] = $item;
+        }
+
+
+
+        // return response($groupedData);
+
+
+        foreach ($groupedData as $groupKey => $group) {
+            foreach ($group as $index => $item) {
+                // Check if the 'inumbr' value exists in $skus
+                if (!$skus->contains($item['inumbr'])) {
+                    // If not found, add the object
+                    $groupedData[$groupKey][$index]['ibhand'] = 0;
+                }
+            }
+        }
+
+        // return response($groupedData);
+
+        foreach ($groupedData as $store => $inventoryItems) {
+
+            // Upsert operation for each store
+            Invbal::updateOrCreate(
+                ['istore' => $store], // Condition for finding existing record
+                ['invbal' => $inventoryItems] // Data to be inserted or updated
+            );
+        }
+
+
+
+
+        return response($groupedData);
     }
 }

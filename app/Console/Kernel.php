@@ -33,6 +33,20 @@ class Kernel extends ConsoleKernel
 
         $schedule->call(function () use ($context) {
             try {
+                file_get_contents('http://localhost:8802/api/ssd/sftp/invbal', false, $context);
+
+                // Process the response or handle success
+                // ...
+            } catch (\Exception $e) {
+                // Log any errors
+                Log::error('Error during scheduled task: ' . $e->getMessage());
+            }
+        })->dailyAt('07:30'); //Time - 06:30 am
+        //dailyAt(07:20); - For Usage in Upscaling
+
+
+        $schedule->call(function () use ($context) {
+            try {
                 file_get_contents('http://10.60.14.57:8802/api/ssd/sftp/stock-update', false, $context);
 
                 // Process the response or handle success
@@ -41,8 +55,9 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('07:45'); //Time - 06:30 am
+        })->dailyAt('08:00'); //Time - 06:30 am
         //everyTwoHours(); - For Usage in Upscaling
+
         //
 
         $schedule->call(function () use ($context) {
