@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use App\Models\Invbal;
+use Illuminate\Http\Client\RequestException;
 
 class DataCronController extends Controller
 {
@@ -189,58 +190,81 @@ class DataCronController extends Controller
 
     {
         ini_set('memory_limit', '10048M');
-        ini_set('max_execution_time', 180);
+        ini_set('max_execution_time', 50000000);
 
-        $istore = StoreMaintenance::pluck('istore');
+        $istore = DB::table('store_maintenance')
+            ->select('istore')
+            ->where('grab', 1)
+            // ->take(10)
+            ->get()->pluck('istore');
         $skus = Sku::pluck('SKU_Number');
 
         // return response($skus);
 
         // take(5)->
+
         $filteredData = [];
 
+
+        $retryLimit = 10; // Number of retries
+        $retryCount = 0; // Initialize retry count
+
         foreach ($istore as $storeId) {
-
             $skip = 0;
-            $take = 1000;
+            $take = 60000;
             $mergedResult = [];
-            do {
-                $response = Http::withHeaders([
-                    'Host' => env('DS_HOST') . ':' . env('DS_PORT'),
-                    'Authorization' => env('DS_PASSWORD'),
-                    'business_unit_id' => env('DS_UNIT_ID'),
-                ])->get("http://10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
-                // http: //10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=0&take=1000&store=114
-                // Check if the request was successful
-                // return response($response);
-                if ($response->successful()) {
-                    $responseData = $response->json()['data'];
-                    $mergedResult = array_merge($mergedResult, $responseData);
 
-                    // Increment the skip for the next iteration by setting skip equal to the sum of $skip and $take
-                    $skip += $take;
+            while ($retryCount < $retryLimit) {
+                try {
+                    $response = Http::withHeaders([
+                        'Host' => env('DS_HOST') . ':' . env('DS_PORT'),
+                        'Authorization' => env('DS_PASSWORD'),
+                        'business_unit_id' => env('DS_UNIT_ID'),
+                        'timeout' => 420 // Timeout set to 3 minutes (180 seconds)
+                    ])->get("http://10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
 
-                    // If the response data is empty, break the loop
-                    if (empty($responseData)) {
+                    if ($response->successful()) {
+                        $responseData = $response->json()['data'];
+                        $mergedResult = array_merge($mergedResult, $responseData);
+                        break; // Break out of the retry loop if successful
+                    }
+                } catch (\Exception $e) {
+                    // Check if the error message contains "Connection was forcibly closed by a peer"
+                    if (strpos($e->getMessage(), 'Connection was forcibly closed by a peer') !== false) {
+                        // Increment retry count
+                        $retryCount++;
+                        // If reached retry limit, handle accordingly
+                        if ($retryCount >= $retryLimit) {
+                            // Handle retry exhaustion (log, throw exception, etc.)
+                            // For now, we'll just break out of the loop
+                            break;
+                        }
+                        // Sleep before retrying
+                        sleep(1);
+                        continue; // Retry the request
+                    }
+                    // Increment retry count for other types of exceptions
+                    $retryCount++;
+                    // If reached retry limit, handle accordingly
+                    if ($retryCount >= $retryLimit) {
+                        // Handle retry exhaustion (log, throw exception, etc.)
+                        // For now, we'll just break out of the loop
                         break;
                     }
-                } else {
-                    // Handle the error
-                    $errorCode = $response->status();
-                    $errorMessage = $response->body();
-                    // Handle or log the error as needed
-                    // For example: Log::error("Error fetching data: $errorCode - $errorMessage");
-                    break; // Stop the loop on error
+                    // Sleep before retrying
+                    sleep(1);
+                    continue; // Retry the request
                 }
+            }
 
-                // Introduce a buffer of 0.5 seconds between each request
-                // sleep(0.1);
-            } while (true);
+            // If mergedResult is empty, handle accordingly (retry exhausted or no successful response)
+            if (empty($mergedResult)) {
+                // Handle retry exhaustion or unsuccessful response here
+                // For now, we'll just continue to the next iteration
+                continue;
+            }
 
-
-
-
-            // // Iterate through each object in the array
+            // Iterate through each object in the array
             foreach ($mergedResult as $item) {
                 // Create a new object with only the specified properties
                 $filteredItem = [
@@ -252,7 +276,14 @@ class DataCronController extends Controller
                 // Add the filtered object to the filtered data array
                 $filteredData[] = $filteredItem;
             }
+
+            sleep(0.3); // Optional delay between requests
         }
+        // $dd = count($filteredData);
+        // return response()->json([
+        //     'count' => $dd,
+        //     'data' => $filteredData
+        // ]);
 
 
         // Iterate through each object

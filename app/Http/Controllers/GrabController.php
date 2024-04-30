@@ -172,7 +172,7 @@ class GrabController extends Controller
         $stores = DB::table('store_maintenance')
             ->select('istore')
             ->where('grab', 1)
-            // ->take(5)
+            //->take(3)
             ->get()->pluck('istore');
 
         // $stores = [114];
@@ -364,7 +364,6 @@ class GrabController extends Controller
         // ini_set('memory_limit', '5G');
 
         //? On input get skus - by $store_id input
-
 
 
 
@@ -661,40 +660,40 @@ class GrabController extends Controller
 
     //! Inclusion
 
-    public function TMP()
-    {
-        $invbal = Invbal::pluck('istore');
-        $grabStore = Store::pluck('istore');
-        $commonStores = [];
-        $uniqueInvbalStores = [];
-        $uniqueGrabStore = [];
+    // public function TMP()
+    // {
+    //     $invbal = Invbal::pluck('istore');
+    //     $grabStore = Store::pluck('istore');
+    //     $commonStores = [];
+    //     $uniqueInvbalStores = [];
+    //     $uniqueGrabStore = [];
 
-        $invbal = $invbal->toArray();
-        $grabStore = $grabStore->toArray();
+    //     $invbal = $invbal->toArray();
+    //     $grabStore = $grabStore->toArray();
 
-        // Check common stores
-        foreach ($invbal as $store) {
-            if (in_array($store, $grabStore)) {
-                $commonStores[] = $store;
-            } else {
-                $uniqueInvbalStores[] = $store;
-            }
-        }
+    //     // Check common stores
+    //     foreach ($invbal as $store) {
+    //         if (in_array($store, $grabStore)) {
+    //             $commonStores[] = $store;
+    //         } else {
+    //             $uniqueInvbalStores[] = $store;
+    //         }
+    //     }
 
-        // Check for unique stores in $grabStore
-        foreach ($grabStore as $store) {
-            if (!in_array($store, $invbal, true)) {
-                $uniqueGrabStore[] = $store;
-            }
-        }
+    //     // Check for unique stores in $grabStore
+    //     foreach ($grabStore as $store) {
+    //         if (!in_array($store, $invbal, true)) {
+    //             $uniqueGrabStore[] = $store;
+    //         }
+    //     }
 
-        // Prepare response
-        $response = [
-            'common_stores' => $commonStores,
-            'unique_invbal_stores' => $uniqueInvbalStores,
-            'unique_grab_store' => $uniqueGrabStore,
-        ];
+    //     // Prepare response
+    //     $response = [
+    //         'common_stores' => $commonStores,
+    //         'unique_invbal_stores' => $uniqueInvbalStores,
+    //         'unique_grab_store' => $uniqueGrabStore,
+    //     ];
 
-        return response()->json($response);
-    }
+    //     return response()->json($response);
+    // }
 }
