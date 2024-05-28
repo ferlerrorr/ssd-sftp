@@ -20,7 +20,7 @@ class Kernel extends ConsoleKernel
 
         $schedule->call(function () use ($context) {
             try {
-                file_get_contents('http://10.60.14.57:8802/api/ssd/sftp/price-job-update', false, $context);
+                file_get_contents('http://10.91.100.145:8802/api/ssd/sftp/price-job-update', false, $context);
 
                 // Process the response or handle success
                 Log::info('Get Update Price Done');
@@ -28,34 +28,36 @@ class Kernel extends ConsoleKernel
                 // Log any errors
                 Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('10:50'); // Time - 04:30 am
+        })->dailyAt('04:30'); // Time - 04:30 am
 
 
         $schedule->call(function () use ($context) {
             try {
-                file_get_contents('http://localhost:8802/api/ssd/sftp/invbal', false, $context);
+                file_get_contents('http://10.91.100.145:8802/api/ssd/sftp/invbal', false, $context);
 
                 // Process the response or handle success
                 Log::info('Get Update INVBAL Done');
             } catch (\Exception $e) {
                 // Log any errors
-                Log::error('Error during scheduled task: ' . $e->getMessage());
+                // Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('10:55'); //Time - 06:30 am
-        //dailyAt(07:20); - For Usage in Upscaling
+        })->dailyAt('08:30'); //Time - 06:30 am
+        //dailyAt(08:30); - For Usage in Upscaling
 
 
         $schedule->call(function () use ($context) {
             try {
-                file_get_contents('http://10.60.14.57:8802/api/ssd/sftp/stock-update', false, $context);
+                file_get_contents('http://10.91.100.145:8802/api/ssd/sftp/stock-update', false, $context);
 
                 // Process the response or handle success
                 Log::info('Get Update Stock Done');
             } catch (\Exception $e) {
                 // Log any errors
-                Log::error('Error during scheduled task: ' . $e->getMessage());
+                //  Log::error('Error during scheduled task: ' . $e->getMessage());
             }
-        })->dailyAt('11:00'); //Time - 06:30 am
+        })->dailyAt('08:50');
+
+        //Time - 06:30 am
         //everyTwoHours(); - For Usage in Upscaling
 
         //
@@ -71,7 +73,7 @@ class Kernel extends ConsoleKernel
         //         //      // Log any errors
         //         Log::error('Error during scheduled task: ' . $e->getMessage());
         //     }
-        // })->dailyAt('08:45'); //Time - 07:30 am to 09:00 am
+        // })->dailyAt('08:55'); //Time - 07:30 am to 09:00 am
 
 
 

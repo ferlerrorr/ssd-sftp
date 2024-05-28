@@ -27,7 +27,7 @@ class DataCronController extends Controller
         // Convert the array of SKU numbers to a comma-separated string
         // $sku_numbers = implode(',', $skus);
 
-        $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
+        $url = 'http://10.60.15.236/JDA_Connect_SFY/JDA_ConnectService.asmx';
         $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
         <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
@@ -55,6 +55,10 @@ class DataCronController extends Controller
         curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlBody);
 
         $response = curl_exec($ch);
+
+        //To Analyze Response
+        var_dump($response);
+
         curl_close($ch);
 
         $xml = simplexml_load_string($response);
@@ -79,9 +83,6 @@ class DataCronController extends Controller
         return response($result);
     }
 
-
-
-
     public function dataPriceUpdate()
 
     {
@@ -97,7 +98,7 @@ class DataCronController extends Controller
             $skuDetails = null;
 
             while ($retryCount > 0) {
-                $url = 'http://10.60.15.110/JDA_Connect_SFY/JDA_ConnectService.asmx';
+                $url = 'http://10.60.15.236/JDA_Connect_SFY/JDA_ConnectService.asmx';
                 $xmlBody = '<?xml version="1.0" encoding="utf-8"?>
                     <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
@@ -180,48 +181,45 @@ class DataCronController extends Controller
         return response()->json($resp, 200);
     }
 
-
-
-
-
-    //! Inclusion
-
     public function dvRepInvbal()
-
     {
         ini_set('memory_limit', '10048M');
-        ini_set('max_execution_time', 50000000);
+        // ini_set('max_execution_time', 50000000);
+
+
+        //!!For Analyze Data
+        // $response = Http::withHeaders([
+        //     'Authorization' => env('DS_PASSWORD'),
+        //     'business_unit_id' => env('DS_UNIT_ID'),
+        //     'timeout' => 420 // Timeout set to 7 minutes
+        // ])->get(env('DS_URL') . "INVBAL/GetListByStore?skip=0&take=60000&store=600");
+
+        // return response($response->json()['data']);
+        //!!For Analyze Data
 
         $istore = DB::table('store_maintenance')
             ->select('istore')
             ->where('grab', 1)
-            // ->take(10)
-            ->get()->pluck('istore');
+            ->get()
+            ->pluck('istore');
         $skus = Sku::pluck('SKU_Number');
 
-        // return response($skus);
-
-        // take(5)->
-
         $filteredData = [];
-
-
-        $retryLimit = 10; // Number of retries
-        $retryCount = 0; // Initialize retry count
+        $retryLimit = 12; // Number of retries
 
         foreach ($istore as $storeId) {
             $skip = 0;
             $take = 60000;
             $mergedResult = [];
+            $retryCount = 0; // Initialize retry count
 
             while ($retryCount < $retryLimit) {
                 try {
                     $response = Http::withHeaders([
-                        'Host' => env('DS_HOST') . ':' . env('DS_PORT'),
                         'Authorization' => env('DS_PASSWORD'),
                         'business_unit_id' => env('DS_UNIT_ID'),
-                        'timeout' => 420 // Timeout set to 3 minutes (180 seconds)
-                    ])->get("http://10.60.13.150:8086/STG_Ecom_API/v1/INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
+                        'timeout' => 420 // Timeout set to 7 minutes
+                    ])->get(env('DS_URL') . "INVBAL/GetListByStore?skip=$skip&take=$take&store=$storeId");
 
                     if ($response->successful()) {
                         $responseData = $response->json()['data'];
@@ -229,30 +227,15 @@ class DataCronController extends Controller
                         break; // Break out of the retry loop if successful
                     }
                 } catch (\Exception $e) {
-                    // Check if the error message contains "Connection was forcibly closed by a peer"
-                    if (strpos($e->getMessage(), 'Connection was forcibly closed by a peer') !== false) {
-                        // Increment retry count
-                        $retryCount++;
-                        // If reached retry limit, handle accordingly
-                        if ($retryCount >= $retryLimit) {
-                            // Handle retry exhaustion (log, throw exception, etc.)
-                            // For now, we'll just break out of the loop
-                            break;
-                        }
-                        // Sleep before retrying
-                        sleep(1);
-                        continue; // Retry the request
-                    }
-                    // Increment retry count for other types of exceptions
+                    // Increment retry count
                     $retryCount++;
-                    // If reached retry limit, handle accordingly
                     if ($retryCount >= $retryLimit) {
                         // Handle retry exhaustion (log, throw exception, etc.)
                         // For now, we'll just break out of the loop
                         break;
                     }
                     // Sleep before retrying
-                    sleep(1);
+                    // sleep(1);
                     continue; // Retry the request
                 }
             }
@@ -277,43 +260,25 @@ class DataCronController extends Controller
                 $filteredData[] = $filteredItem;
             }
 
-            sleep(0.3); // Optional delay between requests
+            // sleep(0.3); // Optional delay between requests
         }
-        // $dd = count($filteredData);
-        // return response()->json([
-        //     'count' => $dd,
-        //     'data' => $filteredData
-        // ]);
 
-
-        // Iterate through each object
+        // Convert keys to lowercase
         foreach ($filteredData as &$obj) {
-            // Iterate through each property of the object
             foreach ($obj as $key => $value) {
-                // Convert the property name to lowercase
                 $lowercaseKey = strtolower($key);
-                // If the property name is already in lowercase, continue to the next property
-                if ($lowercaseKey === $key) {
-                    continue;
+                if ($lowercaseKey !== $key) {
+                    $obj[$lowercaseKey] = $value;
+                    unset($obj[$key]);
                 }
-                // Remove the original property and add the lowercase property
-                $obj[$lowercaseKey] = $value;
-                unset($obj[$key]);
             }
         }
-
-
 
         $groupedData = [];
 
         foreach ($filteredData as $item) {
             $groupedData[$item['istore']][] = $item;
         }
-
-
-
-        // return response($groupedData);
-
 
         foreach ($groupedData as $groupKey => $group) {
             foreach ($group as $index => $item) {
@@ -325,19 +290,13 @@ class DataCronController extends Controller
             }
         }
 
-        // return response($groupedData);
-
         foreach ($groupedData as $store => $inventoryItems) {
-
             // Upsert operation for each store
             Invbal::updateOrCreate(
                 ['istore' => $store], // Condition for finding existing record
                 ['invbal' => $inventoryItems] // Data to be inserted or updated
             );
         }
-
-
-
 
         return response($groupedData);
     }
